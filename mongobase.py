@@ -53,8 +53,13 @@ from importlib import import_module
 from uuid import uuid4
 from pymongo import TEXT, MongoClient, ReturnDocument, DESCENDING, ASCENDING
 from pymongo.operations import InsertOne, ReplaceOne, UpdateOne, UpdateMany
-from models.modelbase import ModelBase
-from general.config import Config
+from libcommon.modelbase import ModelBase
+from libcommon.config import MONGO_DB_URI, MONGO_DB_NAME, MONGO_DB_CONNECT_TIMEOUT_MS, \
+        MONGO_DB_SERVER_SELECTION_TIMEOUT_MS, MONGO_DB_SOCKET_TIMEOUT_MS, MONGO_DB_SOCKET_KEEP_ALIVE, \
+        MONGO_DB_MAX_IDLE_TIME_MS, MONGO_DB_MAX_POOL_SIZE, MONGO_DB_MIN_POOL_SIZE, \
+        MONGO_DB_WAIT_QUEUE_MULTIPLE, MONGO_DB_WAIT_QUEUE_TIMEOUT_MS, \
+        MECAB_USER_DIC_PATH
+
 
 
 class db_context(object):
@@ -66,7 +71,7 @@ class db_context(object):
         ...   obj.update({'index': 2})
         ...   resu
     """
-    def __init__(self, db_uri=Config.MONGO_DB_URI, db_name=None):
+    def __init__(self, db_uri=MONGO_DB_URI, db_name=None):
         assert db_uri and db_name, 'db_uri and db_name must be specified'
         self.__db_uri__ = db_uri
         self.__db_name__ = db_name
@@ -74,15 +79,15 @@ class db_context(object):
     def create_db(self, db_uri, db_name):
         self.__db = MongoClient(
             db_uri,
-            connectTimeoutMS=Config.MONGO_DB_CONNECT_TIMEOUT_MS,
-            serverSelectionTimeoutMS=Config.MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
-            socketTimeoutMS=Config.MONGO_DB_SOCKET_TIMEOUT_MS,
-            socketKeepAlive=Config.MONGO_DB_SOCKET_KEEP_ALIVE,
-            maxIdleTimeMS=Config.MONGO_DB_MAX_IDLE_TIME_MS,
-            maxPoolSize=Config.MONGO_DB_MAX_POOL_SIZE,
-            minPoolSize=Config.MONGO_DB_MIN_POOL_SIZE,
-            waitQueueMultiple=Config.MONGO_DB_WAIT_QUEUE_MULTIPLE,
-            waitQueueTimeoutMS=Config.MONGO_DB_WAIT_QUEUE_TIMEOUT_MS
+            connectTimeoutMS=MONGO_DB_CONNECT_TIMEOUT_MS,
+            serverSelectionTimeoutMS=MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
+            socketTimeoutMS=MONGO_DB_SOCKET_TIMEOUT_MS,
+            socketKeepAlive=MONGO_DB_SOCKET_KEEP_ALIVE,
+            maxIdleTimeMS=MONGO_DB_MAX_IDLE_TIME_MS,
+            maxPoolSize=MONGO_DB_MAX_POOL_SIZE,
+            minPoolSize=MONGO_DB_MIN_POOL_SIZE,
+            waitQueueMultiple=MONGO_DB_WAIT_QUEUE_MULTIPLE,
+            waitQueueTimeoutMS=MONGO_DB_WAIT_QUEUE_TIMEOUT_MS
         )[db_name]
         return self.__db
 
@@ -106,20 +111,20 @@ class MongoBase(ModelBase):
     __search_text_weight_type__ = 'uniform'  # designate weights to each text index key if 'weighted'
     __indexes__ = []  # set index for any key.
 
-    __db_uri__ = Config.MONGO_DB_URI
-    __db_name__ = Config.MONGO_DB_NAME
+    __db_uri__ = MONGO_DB_URI
+    __db_name__ = MONGO_DB_NAME
 
     __db = MongoClient(
             __db_uri__,
-            connectTimeoutMS=Config.MONGO_DB_CONNECT_TIMEOUT_MS,
-            serverSelectionTimeoutMS=Config.MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
-            socketTimeoutMS=Config.MONGO_DB_SOCKET_TIMEOUT_MS,
-            socketKeepAlive=Config.MONGO_DB_SOCKET_KEEP_ALIVE,
-            maxIdleTimeMS=Config.MONGO_DB_MAX_IDLE_TIME_MS,
-            maxPoolSize=Config.MONGO_DB_MAX_POOL_SIZE,
-            minPoolSize=Config.MONGO_DB_MIN_POOL_SIZE,
-            waitQueueMultiple=Config.MONGO_DB_WAIT_QUEUE_MULTIPLE,
-            waitQueueTimeoutMS=Config.MONGO_DB_WAIT_QUEUE_TIMEOUT_MS
+            connectTimeoutMS=MONGO_DB_CONNECT_TIMEOUT_MS,
+            serverSelectionTimeoutMS=MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
+            socketTimeoutMS=MONGO_DB_SOCKET_TIMEOUT_MS,
+            socketKeepAlive=MONGO_DB_SOCKET_KEEP_ALIVE,
+            maxIdleTimeMS=MONGO_DB_MAX_IDLE_TIME_MS,
+            maxPoolSize=MONGO_DB_MAX_POOL_SIZE,
+            minPoolSize=MONGO_DB_MIN_POOL_SIZE,
+            waitQueueMultiple=MONGO_DB_WAIT_QUEUE_MULTIPLE,
+            waitQueueTimeoutMS=MONGO_DB_WAIT_QUEUE_TIMEOUT_MS
         )[__db_name__]
 
     def __init__(self, init_dict):
@@ -134,15 +139,15 @@ class MongoBase(ModelBase):
         db_uri = db_uri if db_uri else cls.__db_uri__
         return MongoClient(
             db_uri,
-            connectTimeoutMS=Config.MONGO_DB_CONNECT_TIMEOUT_MS,
-            serverSelectionTimeoutMS=Config.MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
-            socketTimeoutMS=Config.MONGO_DB_SOCKET_TIMEOUT_MS,
-            socketKeepAlive=Config.MONGO_DB_SOCKET_KEEP_ALIVE,
-            maxIdleTimeMS=Config.MONGO_DB_MAX_IDLE_TIME_MS,
-            maxPoolSize=Config.MONGO_DB_MAX_POOL_SIZE,
-            minPoolSize=Config.MONGO_DB_MIN_POOL_SIZE,
-            waitQueueMultiple=Config.MONGO_DB_WAIT_QUEUE_MULTIPLE,
-            waitQueueTimeoutMS=Config.MONGO_DB_WAIT_QUEUE_TIMEOUT_MS
+            connectTimeoutMS=MONGO_DB_CONNECT_TIMEOUT_MS,
+            serverSelectionTimeoutMS=MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
+            socketTimeoutMS=MONGO_DB_SOCKET_TIMEOUT_MS,
+            socketKeepAlive=MONGO_DB_SOCKET_KEEP_ALIVE,
+            maxIdleTimeMS=MONGO_DB_MAX_IDLE_TIME_MS,
+            maxPoolSize=MONGO_DB_MAX_POOL_SIZE,
+            minPoolSize=MONGO_DB_MIN_POOL_SIZE,
+            waitQueueMultiple=MONGO_DB_WAIT_QUEUE_MULTIPLE,
+            waitQueueTimeoutMS=MONGO_DB_WAIT_QUEUE_TIMEOUT_MS
         )
 
     @classmethod
@@ -166,9 +171,9 @@ class MongoBase(ModelBase):
 
         Set cls.__db for the default.
         """
-        MongoBase.__db_uri__ = Config.MONGO_DB_URI
-        MongoBase.__db_name__ = Config.MONGO_DB_NAME
-        MongoBase.__db = cls._client(Config.MONGO_DB_URI)[Config.MONGO_DB_NAME]
+        MongoBase.__db_uri__ = MONGO_DB_URI
+        MongoBase.__db_name__ = MONGO_DB_NAME
+        MongoBase.__db = cls._client(MONGO_DB_URI)[MONGO_DB_NAME]
 
     def save(self, db=None):
         return self.insertIfNotExistsWithKeys('_id', db=db)
@@ -621,13 +626,13 @@ class MongoBase(ModelBase):
         preprocessed_text = unicodedata.normalize('NFKC', origin_text)
 
         if with_kana:
-            tagger = MeCab.Tagger("-O chasen -u {}".format(Config.FOOD_NAME_MECAB_DIC_PATH))
+            tagger = MeCab.Tagger("-O chasen -u {}".format(MECAB_USER_DIC_PATH))
             morphs = tagger.parse(preprocessed_text).split('\n')[:-2]
             text_by_morph = ' '.join(
                 [morph.split('\t')[0] for morph in morphs] + [morph.split('\t')[1] for morph in morphs]
             )
         else:
-            tagger = MeCab.Tagger("-O wakati -u {}".format(Config.FOOD_NAME_MECAB_DIC_PATH))
+            tagger = MeCab.Tagger("-O wakati -u {}".format(MECAB_USER_DIC_PATH))
             text_by_morph = tagger.parse(preprocessed_text).replace(' \n', '')
 
         if with_unigram:
