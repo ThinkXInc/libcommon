@@ -53,8 +53,8 @@ from importlib import import_module
 from uuid import uuid4
 from pymongo import TEXT, MongoClient, ReturnDocument, DESCENDING, ASCENDING
 from pymongo.operations import InsertOne, ReplaceOne, UpdateOne, UpdateMany
-from libcommon.modelbase import ModelBase
-from libcommon.config import MONGO_DB_URI, MONGO_DB_NAME, MONGO_DB_CONNECT_TIMEOUT_MS, \
+from .modelbase import ModelBase
+from .config import MONGO_DB_URI, MONGO_DB_NAME, MONGO_DB_CONNECT_TIMEOUT_MS, \
         MONGO_DB_SERVER_SELECTION_TIMEOUT_MS, MONGO_DB_SOCKET_TIMEOUT_MS, MONGO_DB_SOCKET_KEEP_ALIVE, \
         MONGO_DB_MAX_IDLE_TIME_MS, MONGO_DB_MAX_POOL_SIZE, MONGO_DB_MIN_POOL_SIZE, \
         MONGO_DB_WAIT_QUEUE_MULTIPLE, MONGO_DB_WAIT_QUEUE_TIMEOUT_MS, \
