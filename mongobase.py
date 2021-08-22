@@ -155,6 +155,11 @@ class MongoBase(ModelBase):
         db_name = db_name if db_name else cls.__db_name__
         return cls._client()[db_name]
 
+    #@classmethod
+    #def close(cls, db=db):
+    #    #cls._client.close()
+    #    self.__db.client.close()
+
     @classmethod
     def set_test_db_client(cls, test_db_uri, test_db_name):
         """Set Test MongoDB.
