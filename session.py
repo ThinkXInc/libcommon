@@ -142,9 +142,11 @@ class Session:
     #     return _client
 
     @staticmethod
-    def user_id():
+    def user_id() -> int:
         """Get user_id from session.
-        If no session, return None.
+
+        returns:
+            - user_id (int) : If no session, return None.
         """
         return session.get('_id')
 
@@ -163,7 +165,7 @@ class Session:
         | 2a7356cb-8a41-47e3-b165-40690cac740c (sid)
         ----------------------------------------------------
         args:
-            user : User
+            - user_id (int) : 
         """
 
         # redisにsessionがない場合なりすまし防止の為にcookieから取得したsessionを使用せずに再生成する
