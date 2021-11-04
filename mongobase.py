@@ -3,6 +3,8 @@
 #
 # mongobase.py
 #
+# MongoDB ormapper using ModelBase model definitions
+#
 #
 # MODEL DEFINITION:
 # 1. create a subclass.
@@ -60,7 +62,30 @@ from libcommon.config import MONGO_DB_URI, MONGO_DB_NAME, MONGO_DB_CONNECT_TIMEO
         MONGO_DB_WAIT_QUEUE_MULTIPLE, MONGO_DB_WAIT_QUEUE_TIMEOUT_MS, \
         MECAB_USER_DIC_PATH
 
+# Create this client once for each process, and reuse it for all operations.
+# It is a common mistake to create a new client for each request, which is very inefficient.
+# https://api.mongodb.com/python/3.5.0/faq.html#how-does-connection-pooling-work-in-pymongo
+mongo_client = MongoClient(
+        MONGO_DB_URI,
+        connectTimeoutMS=MONGO_DB_CONNECT_TIMEOUT_MS,
+        serverSelectionTimeoutMS=MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
+        socketTimeoutMS=MONGO_DB_SOCKET_TIMEOUT_MS,
+        socketKeepAlive=MONGO_DB_SOCKET_KEEP_ALIVE,
+        maxIdleTimeMS=MONGO_DB_MAX_IDLE_TIME_MS,
+        maxPoolSize=MONGO_DB_MAX_POOL_SIZE,
+        minPoolSize=MONGO_DB_MIN_POOL_SIZE,
+        waitQueueMultiple=MONGO_DB_WAIT_QUEUE_MULTIPLE,
+        waitQueueTimeoutMS=MONGO_DB_WAIT_QUEUE_TIMEOUT_MS,
+        connect=False,
+        # connect (option) : if True (the default), immediately begin connecting to MongoDB in the background.
+        # Otherwise connect on the first operation.
+        # NOTE: This fixes "UserWarning: MongoClient opened before fork."
+    )
 
+mongodb = mongo_client[MONGO_DB_NAME]
+print(MONGO_DB_URI)
+print(MONGO_DB_NAME)
+print(mongodb)
 
 class db_context(object):
     """
@@ -111,47 +136,33 @@ class MongoBase(ModelBase):
     __search_text_weight_type__ = 'uniform'  # designate weights to each text index key if 'weighted'
     __indexes__ = []  # set index for any key.
 
-    __db_uri__ = MONGO_DB_URI
-    __db_name__ = MONGO_DB_NAME
-
-    __db = MongoClient(
-            __db_uri__,
-            connectTimeoutMS=MONGO_DB_CONNECT_TIMEOUT_MS,
-            serverSelectionTimeoutMS=MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
-            socketTimeoutMS=MONGO_DB_SOCKET_TIMEOUT_MS,
-            socketKeepAlive=MONGO_DB_SOCKET_KEEP_ALIVE,
-            maxIdleTimeMS=MONGO_DB_MAX_IDLE_TIME_MS,
-            maxPoolSize=MONGO_DB_MAX_POOL_SIZE,
-            minPoolSize=MONGO_DB_MIN_POOL_SIZE,
-            waitQueueMultiple=MONGO_DB_WAIT_QUEUE_MULTIPLE,
-            waitQueueTimeoutMS=MONGO_DB_WAIT_QUEUE_TIMEOUT_MS
-        )[__db_name__]
-
     def __init__(self, init_dict):
         super().__init__(init_dict)
 
-    @classmethod
-    def _client(cls, db_uri=None):
-        """Return MongoClient.
+    # TODO: apply change of MongoClient instance
+    #@classmethod
+    #def mongo_client(cls):
+    #    """Return MongoClient.
 
-        This method is used in other methods of MongoBase.
-        """
-        db_uri = db_uri if db_uri else cls.__db_uri__
-        return MongoClient(
-            db_uri,
-            connectTimeoutMS=MONGO_DB_CONNECT_TIMEOUT_MS,
-            serverSelectionTimeoutMS=MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
-            socketTimeoutMS=MONGO_DB_SOCKET_TIMEOUT_MS,
-            socketKeepAlive=MONGO_DB_SOCKET_KEEP_ALIVE,
-            maxIdleTimeMS=MONGO_DB_MAX_IDLE_TIME_MS,
-            maxPoolSize=MONGO_DB_MAX_POOL_SIZE,
-            minPoolSize=MONGO_DB_MIN_POOL_SIZE,
-            waitQueueMultiple=MONGO_DB_WAIT_QUEUE_MULTIPLE,
-            waitQueueTimeoutMS=MONGO_DB_WAIT_QUEUE_TIMEOUT_MS
-        )
+    #    This method is used in other methods of MongoBase.
+    #    """
+    #    #db_uri = db_uri if db_uri else cls.__db_uri__
+    #    #return MongoClient(
+    #    #    db_uri,
+    #    #    connectTimeoutMS=MONGO_DB_CONNECT_TIMEOUT_MS,
+    #    #    serverSelectionTimeoutMS=MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
+    #    #    socketTimeoutMS=MONGO_DB_SOCKET_TIMEOUT_MS,
+    #    #    socketKeepAlive=MONGO_DB_SOCKET_KEEP_ALIVE,
+    #    #    maxIdleTimeMS=MONGO_DB_MAX_IDLE_TIME_MS,
+    #    #    maxPoolSize=MONGO_DB_MAX_POOL_SIZE,
+    #    #    minPoolSize=MONGO_DB_MIN_POOL_SIZE,
+    #    #    waitQueueMultiple=MONGO_DB_WAIT_QUEUE_MULTIPLE,
+    #    #    waitQueueTimeoutMS=MONGO_DB_WAIT_QUEUE_TIMEOUT_MS
+    #    #)
+    #    return mongo_client
 
     @classmethod
-    def _db(cls, db_name=None):
+    def mongodb(cls, db_name=None):
         db_name = db_name if db_name else cls.__db_name__
         return cls._client()[db_name]
 
@@ -160,25 +171,27 @@ class MongoBase(ModelBase):
     #    #cls._client.close()
     #    self.__db.client.close()
 
-    @classmethod
-    def set_test_db_client(cls, test_db_uri, test_db_name):
-        """Set Test MongoDB.
+    # TODO: apply change of MongoClient instance
+    #@classmethod
+    #def set_test_db_client(cls, test_db_uri, test_db_name):
+    #    """Set Test MongoDB.
 
-        Set cls.__db for testing.
-        """
-        MongoBase.__db_uri__ = test_db_uri
-        MongoBase.__db_name__ = test_db_name
-        MongoBase.__db = cls._client(test_db_uri)[test_db_name]
+    #    Set cls.__db for testing.
+    #    """
+    #    MongoBase.__db_uri__ = test_db_uri
+    #    MongoBase.__db_name__ = test_db_name
+    #    MongoBase.__db = cls._client(test_db_uri)[test_db_name]
 
-    @classmethod
-    def reset_test_db_client(cls):
-        """Reset Test MongoClient and DB to default.
+    # TODO: apply change of MongoClient instance
+    #@classmethod
+    #def reset_test_db_client(cls):
+    #    """Reset Test MongoClient and DB to default.
 
-        Set cls.__db for the default.
-        """
-        MongoBase.__db_uri__ = MONGO_DB_URI
-        MongoBase.__db_name__ = MONGO_DB_NAME
-        MongoBase.__db = cls._client(MONGO_DB_URI)[MONGO_DB_NAME]
+    #    Set cls.__db for the default.
+    #    """
+    #    MongoBase.__db_uri__ = MONGO_DB_URI
+    #    MongoBase.__db_name__ = MONGO_DB_NAME
+    #    MongoBase.__db = cls._client(MONGO_DB_URI)[MONGO_DB_NAME]
 
     def save(self, db=None):
         return self.insertIfNotExistsWithKeys('_id', db=db)
@@ -210,8 +223,8 @@ class MongoBase(ModelBase):
         returns:
             object (ModelBase): a ModelBase instance if found else None.
         """
-        __db = db if db else cls.__db
-        result = __db[cls.__collection__].find_one(query, *args, **kwargs)
+        _db = db if db else mongodb
+        result = _db[cls.__collection__].find_one(query, *args, **kwargs)
         if result:
             return cls(result)
         else:
@@ -236,52 +249,52 @@ class MongoBase(ModelBase):
         returns:
             cursor objects (list): list of Pymongo cursor instances if found else None
         """
-        __db = db if db else cls.__db
+        _db = db if db else mongodb
         # limit & skip & sort
         if limit and skip and sort:
-            results = __db[cls.__collection__]\
+            results = _db[cls.__collection__]\
                 .find(query, **kwargs).sort(sort).skip(skip).limit(limit)
 
         # limit & skip
         elif limit and skip and not sort:
-            results = __db[cls.__collection__]\
+            results = _db[cls.__collection__]\
                 .find(query, **kwargs).skip(skip).limit(limit)
         # limit & sort
         elif limit and not skip and sort:
-            results = __db[cls.__collection__]\
+            results = _db[cls.__collection__]\
                 .find(query, **kwargs).sort(sort).limit(limit)
         # skip & sort
         elif not limit and skip and sort:
-            results = __db[cls.__collection__]\
+            results = _db[cls.__collection__]\
                 .find(query, **kwargs).sort(sort).skip(skip)
 
         # limit
         elif limit and not skip and not sort:
-            results = __db[cls.__collection__].find(
+            results = _db[cls.__collection__].find(
                 query, **kwargs).limit(limit)
         # skip
         elif not limit and skip and not sort:
-            results = __db[cls.__collection__].find(
+            results = _db[cls.__collection__].find(
                 query, **kwargs).skip(skip)
         # sort
         elif not limit and not skip and sort:
-            results = __db[cls.__collection__].find(
+            results = _db[cls.__collection__].find(
                 query, **kwargs).sort(sort)
 
         # (just find)
         else:
-            results = __db[cls.__collection__].find(query, **kwargs)
+            results = _db[cls.__collection__].find(query, **kwargs)
         return results
 
     @classmethod
     def createIndexes(cls, db=None, **kwargs):
         """ Create indexes defined in __indexes__
         """
-        __db = db if db else cls.__db
+        _db = db if db else mongodb
         if len(cls.__indexes__) >= 1:
             for index in cls.__indexes__:
                 logging.info('start creating index: {} {}'.format(cls.__name__, index))
-                __db[cls.__collection__].create_index(index, background=True, **kwargs)
+                _db[cls.__collection__].create_index(index, background=True, **kwargs)
                 logging.info('finished creating index: {} {}'.format(cls.__name__, index))
 
     def insertIfNotExistsWithKeys(self, *args, db=None):
@@ -290,8 +303,9 @@ class MongoBase(ModelBase):
         returns:
             insertion results (MongoBase object or None): if already inserted, returns None.
         """
+        _db = db if db else mongodb
         query = {key: getattr(self, key) for key in args}
-        return self.insertIfNotExistsWithQueryDict(query, db=db)
+        return self.insertIfNotExistsWithQueryDict(query, db=_db)
 
     def insertIfNotExistsWithQueryDict(self, query: dict, db=None):
         """Insert this object to db if no matched document exists.
@@ -302,12 +316,12 @@ class MongoBase(ModelBase):
         returns:
             result (MongoBase object or None): returns self if inserted
         """
-        __db = db if db else self.__db
-        if bool(query) and __db[self.__collection__].find_one(query):
+        _db = db if db else mongodb
+        if bool(query) and _db[self.__collection__].find_one(query):
             logging.info('ALREADY EXISTS, NOT SAVE')
             return None
         else:
-            return self.__insert(db=db)
+            return self.__insert(db=_db)
 
     def __insert(self, db=None):
         """The wrapper for db[collection_name].insert_one() in pymongo.
@@ -318,12 +332,12 @@ class MongoBase(ModelBase):
             3. calls insert_one() method in pymongo.
             4. calls create_index() method in pymongo if __search_text_keys__ has any value.
         """
-        __db = db if db else self.__db
+        _db = db if db else mongodb
         storeable_document = self.__prepare_insert()
-        if __db[self.__collection__].insert_one(storeable_document):
+        if _db[self.__collection__].insert_one(storeable_document):
             # create search index after inserted
             if self.__search_text_keys__:
-                __db[self.__collection__].create_index(
+                _db[self.__collection__].create_index(
                     [('search_text', TEXT)], default_language='english')
             logging.info(u'NEW {} INSERTED.'.format(self))
             return self
@@ -399,7 +413,7 @@ class MongoBase(ModelBase):
         returns:
             inserted_count (int): # of documents inserted.
         """
-        __db = db if db else cls.__db
+        _db = db if db else mongodb
         requests = []
         for obj in inserts:
             assert isinstance(obj, cls),\
@@ -407,7 +421,7 @@ class MongoBase(ModelBase):
             # create a valid document to insert
             storeable_document = obj.__prepare_insert()
             requests += [InsertOne(storeable_document)]
-        result = __db[cls.__collection__].bulk_write(requests)
+        result = _db[cls.__collection__].bulk_write(requests)
         return result.inserted_count
 
     @classmethod
@@ -423,7 +437,7 @@ class MongoBase(ModelBase):
         returns:
             updated_count (int): # of documents updated.
         """
-        __db = db if db else cls.__db
+        _db = db if db else mongodb
         requests = []
         if ids:
             for _id, update in zip(ids, updates):
@@ -436,7 +450,7 @@ class MongoBase(ModelBase):
                 _id = update.get('_id')
                 update = cls.__prepare_updates(update)
                 requests += [UpdateOne({'_id': _id}, {'$set': update})]
-        result = __db[cls.__collection__].bulk_write(requests)
+        result = _db[cls.__collection__].bulk_write(requests)
         return result.modified_count
 
     def updateWithCorrespondentKey(self, find_key, db=None):
@@ -445,9 +459,10 @@ class MongoBase(ModelBase):
         args:
             find_key (str): the key of instance to identify the document.
         """
+        _db = db if db else mongodb
         if hasattr(self, find_key) and getattr(self, find_key):
             return MongoBase.__findAndUpdate(
-                self, find_key, getattr(self, find_key), self, db=db)
+                self, find_key, getattr(self, find_key), self, db=_db)
         return None
 
     @classmethod
@@ -460,8 +475,9 @@ class MongoBase(ModelBase):
 
         __findAndUpdate() is called finally.
         """
+        _db = db if db else mongodb
         logging.info(u'FIND AND UPDATE {} WITH {}'.format(_id, update))
-        return cls.__findAndUpdate(cls, '_id', _id, update, db=db)
+        return cls.__findAndUpdate(cls, '_id', _id, update, db=_db)
 
     @staticmethod
     def __findAndUpdate(
@@ -559,19 +575,21 @@ class MongoBase(ModelBase):
 
         equal to db.collection.updateMany(query, {$set: {key: new_val})
         """
-        __db = db if db else cls_or_instance.__db
-        return __db[cls_or_instance.__collection__].update_many(
+        _db = db if db else mongodb
+        return _db[cls_or_instance.__collection__].update_many(
             query, {'$set': update}, upsert=upsert, array_filters=array_filters,
             bypass_document_validation=bypass_document_validation,
             collation=collation, session=session)
 
     @classmethod
     def deleteById(cls, _id, db=None):
-        return cls.__delete_one({'_id': _id}, db=db)
+        _db = db if db else mongodb
+        return cls.__delete_one({'_id': _id}, db=_db)
 
     @classmethod
     def delete(cls, query, db=None):
-        return cls.__delete(query, db=db)
+        _db = db if db else mongodb
+        return cls.__delete(query, db=_db)
 
     @classmethod
     def __delete_one(cls, query, db=None):
@@ -580,8 +598,8 @@ class MongoBase(ModelBase):
         returns:
             deleted_count (int): # of deleted documents
         """
-        __db = db if db else cls.__db
-        result = __db[cls.__collection__].delete_one(query)
+        _db = db if db else mongodb
+        result = _db[cls.__collection__].delete_one(query)
         return result.deleted_count
 
     @classmethod
@@ -591,8 +609,8 @@ class MongoBase(ModelBase):
         returns:
             deleted_count (int): # of deleted documents
         """
-        __db = db if db else cls.__db
-        result = __db[cls.__collection__].delete_many(query)
+        _db = db if db else mongodb
+        result = _db[cls.__collection__].delete_many(query)
         return result.deleted_count
 
     @staticmethod
@@ -656,7 +674,7 @@ class MongoBase(ModelBase):
             query(dict):
             sort (int): condition other than text search
         """
-        __db = db if db else cls.__db
+        _db = db if db else mongodb
 
         if not query:
             query = {}
@@ -676,7 +694,7 @@ class MongoBase(ModelBase):
             # if no sort condition is set, the order follows textScore.
             sort = [('score', {'$meta': 'textScore'})]
 
-        cursor = __db[cls.__collection__].find(
+        cursor = _db[cls.__collection__].find(
             query,
             {'score': {'$meta': 'textScore'}},
             **kwargs).skip(skip).limit(limit)
@@ -696,17 +714,18 @@ class MongoBase(ModelBase):
         returns:
             - aggregation results: (list)  ex.) [{'_id': 1, 'count': 1213}]
         """
-        __db = db if db else cls.__db
+        _db = db if db else mongodb
         if should_return_generator:
-            return __db[cls.__collection__].aggregate(pipeline=pipeline)
+            return _db[cls.__collection__].aggregate(pipeline=pipeline)
         else:
-            return [item for item in __db[cls.__collection__].aggregate(pipeline=pipeline)]
+            return [item for item in _db[cls.__collection__].aggregate(pipeline=pipeline)]
 
     @classmethod
     def largestID(cls, db=None) -> int:
         """Return largest _id.
         """
-        ids = cls.distinct('_id', db=db)
+        _db = db if db else mongodb
+        ids = cls.distinct('_id', db=_db)
         largest_id = 0
         for _id in ids:
             largest_id = int(_id) if largest_id < int(_id) else largest_id
@@ -718,13 +737,13 @@ class MongoBase(ModelBase):
 
         The wrapper of count() method in pymongo.
         """
-        __db = db if db else cls.__db
-        return __db[cls.__collection__].count(query)
+        _db = db if db else mongodb
+        return _db[cls.__collection__].count(query)
 
     @classmethod
     def incrementalId(cls, db=None) -> int:
-        __db = db if db else cls.__db
-        cursor = __db[cls.__collection__].find({}, {'_id': 1})
+        _db = db if db else mongodb
+        cursor = _db[cls.__collection__].find({}, {'_id': 1})
         return cursor.sort('_id', DESCENDING).limit(1).next()['_id'] + 1\
             if int(cursor.count()) > 0 else 1
 
@@ -734,11 +753,11 @@ class MongoBase(ModelBase):
 
         The wrapper of distinct() method in pymongo.
         """
-        __db = db if db else cls.__db
+        _db = db if db else mongodb
         if not query:
-            return __db[cls.__collection__].distinct(key)
+            return _db[cls.__collection__].distinct(key)
         else:
-            return cls.__find(query, db=__db).distinct(key)
+            return cls.__find(query, db=_db).distinct(key)
 
     @classmethod
     def outputCsv(cls, query={}):
