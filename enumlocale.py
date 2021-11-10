@@ -92,6 +92,14 @@ class EnumLocale(Enum):
         return [name for name, member in cls.__members__.items()]
 
     @classmethod
+    def names(cls):
+        return [e.name for e in cls]
+
+    @classmethod
+    def values(cls):
+        return [e.value for e in cls]
+
+    @classmethod
     def order(cls):
         """Return values(1,2,...) in order.
         """
