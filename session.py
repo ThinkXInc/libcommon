@@ -1,7 +1,7 @@
 #!/usr/local/bin/python
 # -*- coding:utf-8 -*-
 #
-# tools/session.py
+# session.py
 #
 # This subclass replaces the flask session_interface.
 #
