@@ -146,16 +146,16 @@ class Session:
         """Get user_id from session.
         If no session, return None.
         """
-        return session.get('_id')
+        return session.get('user_id')
 
     @staticmethod
-    def exists_session():
+    def exists_user_session():
         """Return if session exists.
         """
-        return '_id' in session
+        return 'user_id' in session
 
     @staticmethod
-    def start(user_id: int) -> None:
+    def start_user_session(user_id: int) -> None:
         """Save user session.
         -SET sessions:{user_id} ----------------------------
         | 6b48dfa3-83b5-4a05-bb31-08eddb701984 (sid)
@@ -179,7 +179,7 @@ class Session:
         Session.__redis.sadd(sessions_key, session.sid)
 
     @staticmethod
-    def clear() -> None:
+    def clear_user_session() -> None:
         """Clear session.
         """
         Session.__redis.delete(Session.SESSIONS_PREFIX + str(Session.user_id()))
@@ -187,7 +187,7 @@ class Session:
         session.clear()
 
     @staticmethod
-    def count(user_id: int) -> int:
+    def users_count(user_id: int) -> int:
         """get access count
         args:
             user_id : int  # User._id
@@ -225,3 +225,88 @@ class Session:
             logging.debug(
                 '{} session found for user {}'.format(count, user_id))
             return count
+
+    @staticmethod
+    def organization_member_id():
+        """Get organization_member_id from session.
+        If no session, return None.
+        """
+        return session.get('organization_member_id')
+
+    @staticmethod
+    def exists_organization_session():
+        """Return if session exists.
+        """
+        return 'organization_member_id' in session
+
+    @staticmethod
+    def start_organization_session(organization_member_id: int) -> None:
+        """Save user session.
+        -SET sessions:{user_id} ----------------------------
+        | 6b48dfa3-83b5-4a05-bb31-08eddb701984 (sid)
+        | 428d897d-19ae-4881-a086-df625957c5db (sid)
+        | 2a7356cb-8a41-47e3-b165-40690cac740c (sid)
+        ----------------------------------------------------
+        args:
+            organization_member : OrganizationMember
+        """
+
+        # redisにsessionがない場合なりすまし防止の為にcookieから取得したsessionを使用せずに再生成する
+        Session.clear()
+        session.sid = str(uuid4())
+        print(session)
+        session['organization_member_id'] = organization_member_id
+
+        sessions_key = '{}{}'.format(
+            Session.SESSIONS_PREFIX, organization_member_id)
+        print(sessions_key)
+        print(session.sid)
+        Session.__redis.sadd(sessions_key, session.sid)
+
+    @staticmethod
+    def clear_organization_session() -> None:
+        """Clear session.
+        """
+        Session.__redis.delete(Session.SESSIONS_PREFIX + str(Session.organization_member_id()))
+        Session.__redis.delete(Session.SESSION_PREFIX + session.sid)
+        session.clear()
+
+    @staticmethod
+    def count(organization_member_id: int) -> int:
+        """get access count
+        args:
+            organization_member_id : int  # OrganizationMember.organization_member_id
+        Returns:
+            count: int  # access count
+        """
+        logging.debug('count sessions for user_id:{}'.format(organization_member_id))
+
+        sessions_key = '{}{}'.format(
+            Session.SESSIONS_PREFIX, organization_member_id)
+        user_sids = Session.__redis.smembers(sessions_key)
+
+        # count session in redis
+        if len(user_sids) == 0:
+            # no session found
+            logging.debug('no session found')
+            return 0
+        else:
+            logging.debug('session found')
+            sids = set()
+            for user_sid in user_sids:
+                user_sid = user_sid.decode()
+                # if session:{sid} in session, count it
+                if Session.__redis.exists(Session.SESSION_PREFIX +
+                                                  user_sid):
+                    sids.add(user_sid)
+                else:
+                    # if session:{sid} doesn't exist,
+                    # remove the sid from sessions:
+                    Session.__redis.srem(
+                        sessions_key,
+                        user_sid)
+
+            count = len(sids)
+            logging.debug(
+                '{} session found for user {}'.format(count, organization_member_id))
+            return count        
