@@ -272,7 +272,7 @@ class Session:
         session.clear()
 
     @staticmethod
-    def count(organization_member_id: int) -> int:
+    def organizations_count(organization_member_id: int) -> int:
         """get access count
         args:
             organization_member_id : int  # OrganizationMember.organization_member_id
