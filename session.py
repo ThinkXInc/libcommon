@@ -241,8 +241,8 @@ class Session:
 
     @staticmethod
     def start_organization_session(organization_member_id: int) -> None:
-        """Save user session.
-        -SET sessions:{user_id} ----------------------------
+        """Save organization session.
+        -SET sessions:{organization_member_id} -------------
         | 6b48dfa3-83b5-4a05-bb31-08eddb701984 (sid)
         | 428d897d-19ae-4881-a086-df625957c5db (sid)
         | 2a7356cb-8a41-47e3-b165-40690cac740c (sid)
@@ -265,7 +265,7 @@ class Session:
 
     @staticmethod
     def clear_organization_session() -> None:
-        """Clear session.
+        """Clear organization session.
         """
         Session.__redis.delete(Session.SESSIONS_PREFIX + str(Session.organization_member_id()))
         Session.__redis.delete(Session.SESSION_PREFIX + session.sid)
