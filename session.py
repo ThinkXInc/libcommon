@@ -252,7 +252,7 @@ class Session:
         """
 
         # redisにsessionがない場合なりすまし防止の為にcookieから取得したsessionを使用せずに再生成する
-        Session.clear()
+        Session.clear_organization_session()
         session.sid = str(uuid4())
         print(session)
         session['organization_member_id'] = organization_member_id
