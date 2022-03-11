@@ -148,13 +148,13 @@ class Session:
         returns:
             - user_id (int) : If no session, return None.
         """
-        return session.get('_id')
+        return session.get('user_id')
 
     @staticmethod
     def exists_session():
         """Return if session exists.
         """
-        return '_id' in session
+        return 'user_id' in session
 
     @staticmethod
     def start(user_id: int) -> None:
