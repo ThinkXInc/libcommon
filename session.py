@@ -157,7 +157,7 @@ class Session:
         return 'user_id' in session
 
     @staticmethod
-    def star_user_sessiont(user_id: int) -> None:
+    def start_user_session(user_id: int) -> None:
         """Save user session.
         -SET sessions:{user_id} ----------------------------
         | 6b48dfa3-83b5-4a05-bb31-08eddb701984 (sid)
@@ -189,7 +189,7 @@ class Session:
         session.clear()
 
     @staticmethod
-    def user_access_count(user_id: int) -> int:
+    def get_user_access_count(user_id: int) -> int:
         """get access count
         args:
             user_id : int  # User._id
@@ -274,7 +274,7 @@ class Session:
         session.clear()
 
     @staticmethod
-    def organization_access_count(organization_member_id: int) -> int:
+    def get_organization_access_count(organization_member_id: int) -> int:
         """get access count
         args:
             organization_member_id : int  # OrganizationMember.organization_member_id
