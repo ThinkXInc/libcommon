@@ -741,11 +741,10 @@ class MongoBase(ModelBase):
         return _db[cls.__collection__].count(query)
 
     @classmethod
-    def incrementalId(cls, db=None) -> int:
-        _db = db if db else mongodb
-        cursor = _db[cls.__collection__].find({}, {'_id': 1})
-        return cursor.sort('_id', DESCENDING).limit(1).next()['_id'] + 1\
-            if int(cursor.count()) > 0 else 1
+    def incrementalId(cls, key_name: str, db=None) -> int:
+        __db = db if db else cls.__db
+        cursor = __db[cls.__collection__].find({},sort=[( '_id', DESCENDING )]).limit(1)
+        return cursor.next()[key_name] +1 if int(cursor.count()) > 0 else 1
 
     @classmethod
     def distinct(cls, key, query=None, db=None):
