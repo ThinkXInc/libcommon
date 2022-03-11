@@ -746,7 +746,7 @@ class MongoBase(ModelBase):
         args :
         key_name(str) : eg. user_id, organization_id, index, item_id
         """
-        __db = db if db else cls.__db
+        __db = db if db else mongodb
         cursor = __db[cls.__collection__].find({},sort=[( '_id', DESCENDING )]).limit(1)
         return cursor.next()[key_name] +1 if int(cursor.count()) > 0 else 1
 
