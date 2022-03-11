@@ -742,6 +742,10 @@ class MongoBase(ModelBase):
 
     @classmethod
     def incrementalId(cls, key_name: str, db=None) -> int:
+        """Return the next id of document in collection by increment
+        args :
+        key_name(str) : eg. user_id, organization_id, index, item_id
+        """
         __db = db if db else cls.__db
         cursor = __db[cls.__collection__].find({},sort=[( '_id', DESCENDING )]).limit(1)
         return cursor.next()[key_name] +1 if int(cursor.count()) > 0 else 1
