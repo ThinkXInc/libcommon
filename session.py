@@ -122,6 +122,7 @@ class RedisSessionInterface(SessionInterface):
 class Session:
     SESSION_PREFIX = 'session:'
     SESSIONS_PREFIX = 'sessions:'
+    SESSION_KEY = 'user_id'
 
     pool = redis.ConnectionPool(
         host=Config.REDIS_HOST_SESSION,
@@ -141,23 +142,23 @@ class Session:
     #         db=Config.REDIS_DB_NUMBER_SESSION)
     #     return _client
 
-    @staticmethod
-    def user_id() -> int:
+    @classmethod
+    def user_id(cls) -> int:
         """Get user_id from session.
 
         returns:
             - user_id (int) : If no session, return None.
         """
-        return session.get('user_id')
+        return session.get(cls.SESSION_KEY)
 
-    @staticmethod
-    def exists_session():
+    @classmethod
+    def exists_session(cls):
         """Return if session exists.
         """
-        return 'user_id' in session
+        return cls.SESSION_KEY in session
 
-    @staticmethod
-    def start(user_id: int) -> None:
+    @classmethod
+    def start(cls, user_id: int) -> None:
         """Save user session.
         -SET sessions:{user_id} ----------------------------
         | 6b48dfa3-83b5-4a05-bb31-08eddb701984 (sid)
@@ -172,7 +173,7 @@ class Session:
         Session.clear()
         session.sid = str(uuid4())
         print(session)
-        session['user_id'] = user_id
+        session[cls.SESSION_KEY] = user_id
 
         sessions_key = '{}{}'.format(
             Session.SESSIONS_PREFIX, user_id)
@@ -188,15 +189,15 @@ class Session:
         Session.__redis.delete(Session.SESSION_PREFIX + session.sid)
         session.clear()
 
-    @staticmethod
-    def count(user_id: int) -> int:
+    @classmethod
+    def count(cls, user_id: int) -> int:
         """get access count
         args:
             user_id : int  # User._id
         Returns:
             count: int  # access count
         """
-        logging.debug('count sessions for user_id:{}'.format(user_id))
+        logging.debug('count sessions for {}:{}'.format(cls.SESSION_KEY, user_id))
 
         sessions_key = '{}{}'.format(
             Session.SESSIONS_PREFIX, user_id)
