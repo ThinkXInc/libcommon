@@ -83,9 +83,9 @@ mongo_client = MongoClient(
     )
 
 mongodb = mongo_client[MONGO_DB_NAME]
-print(MONGO_DB_URI)
-print(MONGO_DB_NAME)
-print(mongodb)
+print(f'MongoDB URI: {MONGO_DB_URI}')
+print(f'MongoDB DB NAME: {MONGO_DB_NAME}')
+print(f'MongoDB CLIENT: {mongodb}')
 
 class db_context(object):
     """
