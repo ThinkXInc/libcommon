@@ -22,6 +22,15 @@
 #   > {1: '猫', 2: '犬', 3: '牛'}
 #   > Animal.itemlist()
 #   > ['CAT', 'DOG', 'COW']
+#
+#   > Animal.is_valid_name('CAT')
+#   > True
+#   > Animal.is_valid_name('FROG')
+#   > False
+#   > Animal.is_valid_value(1)
+#   > True
+#   > Animal.is_valid_value(99)
+#   > False
 
 from enum import Enum
 
@@ -120,3 +129,30 @@ class EnumLocale(Enum):
             enum_dict['titles_dict'] = titles_dict
 
             return enum_dict
+
+    @classmethod
+    def is_valid_name(cls, name: str):
+        """Check if the value is valid as language name.
+
+        args:
+            - name (str) : eg. ja
+
+        returns:
+            - is_valid (bool) :
+        """
+        if name is None:
+            return False
+        return name in cls.names()
+
+    def is_valid_value(cls, value):
+        """Check if the number is valid as language value.
+
+        args:
+            - value (int or str) : eg. 100 
+
+        returns:
+            - is_valid (bool) :
+        """
+        if value is None:
+            return False
+        return value in cls.values()
