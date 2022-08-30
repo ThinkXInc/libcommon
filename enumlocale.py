@@ -31,8 +31,27 @@
 #   > True
 #   > Animal.is_valid_value(99)
 #   > False
+#
+#   > Animal.to_dict()
+#   {
+#     "names": ["CAT", "DOG", "COW"],
+#     "values": [0, 1, 2],
+#     "ja": ["猫", "犬", "牛"],
+#     "en": ["Cat", "Dog", "Cow"],
+#     ...
+#   }
+
 
 from enum import Enum
+
+# TODO: complete languages 
+#    ISO 639 - 1 standard language codes:
+#    https://www.andiamo.co.uk/resources/iso-language-codes/
+langs = [
+    "ja", "en", "zh", "ko",
+    "fr", "es", "de", "es", "it",
+    "ru", "ar",
+    "vi", "th", "hi", "id", "ms", "tl"]
 
 
 class EnumLocale(Enum):
@@ -98,14 +117,29 @@ class EnumLocale(Enum):
 
     @classmethod
     def itemlist(cls):
+        """Returns names.
+        
+        returns:
+            - names (list) : eg. ["CAT, "DOG", "COW"]
+        """
         return [name for name, member in cls.__members__.items()]
 
     @classmethod
     def names(cls):
+        """Returns names.
+        
+        returns:
+            - names (list) : eg. ["CAT, "DOG", "COW"]
+        """
         return [e.name for e in cls]
 
     @classmethod
     def values(cls):
+        """Returns values.
+        
+        returns:
+            - names (list) : eg. [1, 2, 3]
+        """
         return [e.value for e in cls]
 
     @classmethod
@@ -156,3 +190,24 @@ class EnumLocale(Enum):
         if value is None:
             return False
         return value in cls.values()
+
+    @classmethod
+    def to_dict(cls) -> dict:
+        d = {}
+        d["names"] = cls.names()
+        d["values"] = cls.values()
+
+        # add all __ja__, __en__, ...
+        # NOTE: the method below misses irregular format
+        #       like __en_with_ragion__
+        # for lang in langs:
+        #     value_dict = getattr(cls, '__'+lang+'__')
+        #     if value_dict:
+        #         d[lang] = [val for name, val in value_dict.items()]
+
+        # find __xx__ in the class properties
+        props = vars(cls)
+        for key, val in props.items():
+            if key.startswith('__') and isinstance(val, dict):
+                d[key] = [v for k, v in val.items()]
+        return d
