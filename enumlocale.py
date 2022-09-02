@@ -178,6 +178,7 @@ class EnumLocale(Enum):
             return False
         return name in cls.names()
 
+    @classmethod
     def is_valid_value(cls, value):
         """Check if the number is valid as language value.
 
