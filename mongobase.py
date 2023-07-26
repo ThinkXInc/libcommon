@@ -57,7 +57,7 @@ from pymongo import TEXT, MongoClient, ReturnDocument, DESCENDING, ASCENDING
 from pymongo.operations import InsertOne, ReplaceOne, UpdateOne, UpdateMany
 from libcommon.modelbase import ModelBase
 from libcommon.config import MONGO_DB_URI, MONGO_DB_NAME, MONGO_DB_CONNECT_TIMEOUT_MS, \
-        MONGO_DB_SERVER_SELECTION_TIMEOUT_MS, MONGO_DB_SOCKET_TIMEOUT_MS, MONGO_DB_SOCKET_KEEP_ALIVE, \
+        MONGO_DB_SERVER_SELECTION_TIMEOUT_MS, MONGO_DB_SOCKET_TIMEOUT_MS, \
         MONGO_DB_MAX_IDLE_TIME_MS, MONGO_DB_MAX_POOL_SIZE, MONGO_DB_MIN_POOL_SIZE, \
         MONGO_DB_WAIT_QUEUE_MULTIPLE, MONGO_DB_WAIT_QUEUE_TIMEOUT_MS, \
         MECAB_USER_DIC_PATH
@@ -70,7 +70,6 @@ mongo_client = MongoClient(
         connectTimeoutMS=MONGO_DB_CONNECT_TIMEOUT_MS,
         serverSelectionTimeoutMS=MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
         socketTimeoutMS=MONGO_DB_SOCKET_TIMEOUT_MS,
-        socketKeepAlive=MONGO_DB_SOCKET_KEEP_ALIVE,
         maxIdleTimeMS=MONGO_DB_MAX_IDLE_TIME_MS,
         maxPoolSize=MONGO_DB_MAX_POOL_SIZE,
         minPoolSize=MONGO_DB_MIN_POOL_SIZE,
@@ -107,7 +106,6 @@ class db_context(object):
             connectTimeoutMS=MONGO_DB_CONNECT_TIMEOUT_MS,
             serverSelectionTimeoutMS=MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
             socketTimeoutMS=MONGO_DB_SOCKET_TIMEOUT_MS,
-            socketKeepAlive=MONGO_DB_SOCKET_KEEP_ALIVE,
             maxIdleTimeMS=MONGO_DB_MAX_IDLE_TIME_MS,
             maxPoolSize=MONGO_DB_MAX_POOL_SIZE,
             minPoolSize=MONGO_DB_MIN_POOL_SIZE,
@@ -152,7 +150,6 @@ class MongoBase(ModelBase):
     #    #    connectTimeoutMS=MONGO_DB_CONNECT_TIMEOUT_MS,
     #    #    serverSelectionTimeoutMS=MONGO_DB_SERVER_SELECTION_TIMEOUT_MS,
     #    #    socketTimeoutMS=MONGO_DB_SOCKET_TIMEOUT_MS,
-    #    #    socketKeepAlive=MONGO_DB_SOCKET_KEEP_ALIVE,
     #    #    maxIdleTimeMS=MONGO_DB_MAX_IDLE_TIME_MS,
     #    #    maxPoolSize=MONGO_DB_MAX_POOL_SIZE,
     #    #    minPoolSize=MONGO_DB_MIN_POOL_SIZE,
