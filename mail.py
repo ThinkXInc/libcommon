@@ -17,7 +17,7 @@
 import boto3
 import logging
 from re import sub
-from general.config import Config
+from config import Config
 
 
 class Mail():

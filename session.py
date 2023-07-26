@@ -33,7 +33,7 @@ from flask.sessions import SessionInterface, SessionMixin
 from redis import StrictRedis, Redis
 from werkzeug.datastructures import CallbackDict
 
-from general.config import Config
+from config import Config
 
 
 class RedisSession(CallbackDict, SessionMixin):

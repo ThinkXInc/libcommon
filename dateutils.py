@@ -22,7 +22,7 @@ from flask import jsonify
 from pytz import timezone
 from datetime import datetime, timedelta
 sys.path.append('../')
-from api.api_response import ErrorResponse, ErrorCode
+from general.api_response import ErrorResponse, ErrorCode
 
 ISO8061_FORMAT = "%Y-%m-%d'T'%H:%M:%S.%f%z"
 

@@ -23,7 +23,7 @@ from Crypto.Cipher import AES
 from Crypto.Util import Padding
 import hashlib
 import base64
-from general.config import Config
+from config import Config
 
 
 class Cipher:

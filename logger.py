@@ -21,7 +21,7 @@
 #
 
 import logging
-from general.config import Config
+from config import Config
 
 
 def logger(log_file_path=None, level=Config.LOG_LEVEL):
