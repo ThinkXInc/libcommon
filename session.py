@@ -8,6 +8,10 @@
 # - Flask SessionInterface
 # (http://flask.pocoo.org/docs/0.10/api/#session-interface)
 #
+# This gives you more flexibility, 
+# like maybe you want to use the same redis.Redis instance for cache purpose too, 
+# then you do not need to keep two redis.Redis instance in the same process.
+#
 # Session values are stored into redis db.
 #
 # - set up
@@ -23,7 +27,7 @@
 
 
 import logging
-import pickle
+import msgpack
 from datetime import timedelta
 from uuid import uuid4
 
@@ -35,20 +39,19 @@ from werkzeug.datastructures import CallbackDict
 
 from config import Config
 
-
 class RedisSession(CallbackDict, SessionMixin):
     def __init__(self, initial=None, sid=None, new=False):
-        def on_update(self):
-            self.modified = True
-
-        CallbackDict.__init__(self, initial, on_update)
+        super().__init__(initial)
+        self.modified = False
         self.sid = sid
         self.new = new
-        self.modified = False
+
+    def on_update(self):
+        self.modified = True
 
 
 class RedisSessionInterface(SessionInterface):
-    serializer = pickle
+    serializer = msgpack
     session_class = RedisSession
 
     pool = redis.ConnectionPool(
@@ -65,7 +68,11 @@ class RedisSessionInterface(SessionInterface):
         """Generate session id
         Return an unique session id.
         """
-        return str(uuid4())
+        while True:
+            session_id = str(uuid4())
+            if not self.__redis.exists(self.prefix + session_id):
+                break
+        return session_id
 
     def get_redis_expiration_time(self, app, session):
         """Return redis expiration time.
@@ -82,14 +89,22 @@ class RedisSessionInterface(SessionInterface):
         If session_id is found,
         return the session object with saved data in redis.
         """
-        session_id = request.cookies.get(app.session_cookie_name)
+        if self.serializer is None:
+            logging.warning(f'[WARNING] No serializer found in RedisSessionInterface.')
+            return None
+        session_cookie_name = app.config.get('SESSION_COOKIE_NAME')
+        session_id = request.cookies.get(session_cookie_name)
         if not session_id:
             session_id = self.generate_session_id()
             return self.session_class(sid=session_id, new=True)
-        val = self.__redis.get(self.prefix + session_id)
-        if val is not None:
-            data = self.serializer.loads(val)
-            return self.session_class(data, sid=session_id)
+        try:
+            val = self.__redis.get(self.prefix + session_id)
+            if val is not None:
+                data = self.serializer.loads(val, raw=False)
+                return self.session_class(data, sid=session_id)
+        except redis.RedisError as e:
+            logging.error(f'Failed to open session: {e}')
+            raise
 
         return self.session_class(sid=session_id, new=True)
 
@@ -103,21 +118,74 @@ class RedisSessionInterface(SessionInterface):
         """
         domain = self.get_cookie_domain(app)
         if not session:
-            self.__redis.delete(self.prefix + session.sid)
+            try:
+                self.__redis.delete(self.prefix + session.sid)
+            except redis.RedisError as e:
+                logging.error(f'Failed to delete session: {e}')
+                raise
             if session.modified:
                 response.delete_cookie(app.session_cookie_name,
                                        domain=domain)
             return
         redis_exp = self.get_redis_expiration_time(app, session)
         cookie_exp = self.get_expiration_time(app, session)
-        val = self.serializer.dumps(dict(session))
-        self.__redis.setex(self.prefix + session.sid,
-                           int(redis_exp.total_seconds()),
-                           val)
+        try:
+            val = self.serializer.dumps(dict(session), use_bin_type=True)
+            self.__redis.setex(self.prefix + session.sid,
+                               int(redis_exp.total_seconds()),
+                               val)
+        except redis.RedisError as e:
+            logging.error(f'Failed to save session: {e}')
+            raise
         response.set_cookie(app.session_cookie_name, session.sid,
                             expires=cookie_exp, httponly=True,
                             domain=domain)
 
+
+# TODO:
+# Will migrate to use flask.Session
+#
+# app = Flask(__name__)
+# # Check Configuration section for more details
+# SESSION_TYPE = 'redis'
+# app.config.from_object(__name__)
+# Session(app)
+# 
+# @app.route('/set/')
+# def set():
+#     session['key'] = 'value'
+#     return 'ok'
+# 
+# @app.route('/get/')
+# def get():
+#     return session.get('key', 'not set')
+#
+# session['user'] = {
+#     'user_id': 123,
+#     # other individual user attributes...
+# }
+# session['organization'] = {
+#     'user_id': 456,
+#     'access_count': 3,
+#     ...
+# }
+#
+# OR
+#
+# class UserSession(ModelBase):
+#   __key__ = 'user_session'
+#   __structure__ = {
+#     _id: ObjectId, 
+#     access_count: int,
+#     ...
+#   }
+#
+# # save session
+# session[UserSession.__key__] = UserSession(user_id=123, access_count=1).serialize()
+#
+# # remove session
+# session[UserSession.__key__] = None
+#
 
 class Session:
     SESSION_PREFIX = 'session:'
