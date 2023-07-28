@@ -35,7 +35,7 @@
 import logging
 import json
 from config import Config
-from models.enums.language import Language
+from libcommon.language import Language
 
 
 class Locale:

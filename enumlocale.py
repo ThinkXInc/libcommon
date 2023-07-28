@@ -44,16 +44,6 @@
 
 from enum import Enum
 
-# TODO: complete languages 
-#    ISO 639 - 1 standard language codes:
-#    https://www.andiamo.co.uk/resources/iso-language-codes/
-langs = [
-    "ja", "en", "zh", "ko",
-    "fr", "es", "de", "es", "it",
-    "ru", "ar",
-    "vi", "th", "hi", "id", "ms", "tl"]
-
-
 class EnumLocale(Enum):
     @classmethod
     def valueFromIndex(cls, index: int, lang='ja'):
@@ -196,14 +186,6 @@ class EnumLocale(Enum):
         d = {}
         d["names"] = cls.names()
         d["values"] = cls.values()
-
-        # add all __ja__, __en__, ...
-        # NOTE: the method below misses irregular format
-        #       like __en_with_ragion__
-        # for lang in langs:
-        #     value_dict = getattr(cls, '__'+lang+'__')
-        #     if value_dict:
-        #         d[lang] = [val for name, val in value_dict.items()]
 
         # find __xx__ in the class properties
         props = vars(cls)
