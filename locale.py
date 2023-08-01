@@ -35,18 +35,25 @@
 import logging
 import json
 from config import Config
+from typing import List, Union
 from libcommon.language import Language
 
-
 class Locale:
-    __langs__ = ['en', 'ja', 'zh']
-    __file_path__ = ''
-    __dict__ = {}
+    __langs__: List[str] = ['en', 'ja', 'zh']
+    __file_paths__: List[str] = []
+    __dict__: dict = {}
 
-    def __init__(self, file_path):
-        with open(file_path) as f:
-            self.__file_path__ = file_path
-            self.__dict__ = json.load(f)
+    def __init__(self, file_paths: Union[str, List[str]]):
+        self.__file_paths__ = file_paths if isinstance(file_paths, list) else [file_paths]
+        self.__dict__ = self.load_files(self.__file_paths__)
+
+    @staticmethod
+    def load_files(file_paths: List[str]) -> dict:
+        data = {}
+        for file_path in file_paths:
+            with open(file_path) as f:
+                data.update(json.load(f))
+        return data
 
     def message(self, key: str, lang: str, *args) -> str:
         """Generate a message of key and lang.
