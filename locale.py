@@ -39,7 +39,7 @@ from typing import List, Union
 from libcommon.language import Language
 
 class Locale:
-    __langs__: List[str] = ['en', 'ja', 'zh']
+    __required_langs__: List[str] = ['en', 'ja', 'zh'] #Language.values()  # ['en', 'ja',..] 
     __file_paths__: List[str] = []
     __dict__: dict = {}
 
@@ -55,24 +55,41 @@ class Locale:
                 data.update(json.load(f))
         return data
 
-    def message(self, key: str, lang: str, *args) -> str:
-        """Generate a message of key and lang.
-
-        args:
-            - key (str): 
-            - lang (str): lang name defined in Language.names()
-            - *args (tuple): replaced with $i
-        returns:
-            - message (str): message for the key and lang
+    def get(self, key: str, lang: str, *args) -> str:
         """
-        assert key in self.__dict__, f'no key {key} found in errors.json'
-        assert lang in self.__dict__[key], \
-            f'no lang {lang} of key {key} found in errors.json'
+        Retrieves a localized message from the json data based on the provided key and language.
+
+        Args:
+            key (str): The identifier for the message to retrieve. 
+                       This should correspond to an existing key in the json data.
+
+            lang (str): The language in which the message is desired. 
+                        This should correspond to one of the names defined in `Language.names()`.
+
+            *args (tuple, optional): Additional arguments that may be used to replace placeholders 
+                                     (in the form of $i) in the retrieved message.
+
+        Returns:
+            message (str): The localized message retrieved from the json data. 
+
+        Raises:
+            KeyError: If the provided key is not found in the json data.
+            ValueError: If the provided language is not found for the given key in the json data, 
+                        or if a placeholder in the message cannot be replaced by the provided arguments.
+        """
+        if key not in self.__dict__:
+            raise KeyError(f'No key {key} found in errors.json')
+
+        if lang not in self.__dict__[key]:
+            raise ValueError(f'No lang {lang} of key {key} found in errors.json')
+
         m = self.__dict__[key][lang]
         for i, arg in enumerate(args):
-            assert f'${i}' in m, f'${i} not in the message:{m}'
+            if f'${i}' not in m:
+                raise ValueError(f'${i} not in the message:{m}')
             m = m.replace(f'${i}', arg)
-        logging.debug(f'error message generated for key:{key} lang:{lang} as {m}')
+
+        logging.debug(f'Error message generated for key:{key} lang:{lang} as {m}')
         return m
 
     def json(self):
@@ -104,7 +121,7 @@ class Locale:
             - ok (bool) : if not, assertion error raises.
         """
         for key, d in self.__dict__.items():
-            for lang in self.__langs__:
+            for lang in self.__required_langs__:
                 if lang not in d:
                     assert False, f'{key} doesn\'t include lang {lang}' 
         return True
