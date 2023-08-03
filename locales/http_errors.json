@@ -1,0 +1,47 @@
+{
+    "invalid_content_type": {
+        "en": "Invalid content type.",
+        "ja": "無効なコンテンツタイプです。",
+        "zh": "内容类型无效。",
+        "fr": "Type de contenu non valide.",
+        "es": "Tipo de contenido inválido.",
+        "ar": "نوع المحتوى غير صالح.",
+        "ru": "Недопустимый тип содержимого."
+    },
+    "forbidden": {
+        "en": "You don't have permission to access this resource.",
+        "ja": "このリソースにアクセスする権限がありません。",
+        "zh": "您无权访问此资源。",
+        "fr": "Vous n'avez pas la permission d'accéder à cette ressource.",
+        "es": "No tienes permiso para acceder a este recurso.",
+        "ar": "ليس لديك الإذن للوصول إلى هذا المورد.",
+        "ru": "У вас нет прав доступа к этому ресурсу."
+    },
+    "resource_not_found": {
+        "en": "The requested resource could not be found.",
+        "ja": "要求されたリソースが見つかりませんでした。",
+        "zh": "未找到请求的资源。",
+        "fr": "La ressource demandée n'a pas pu être trouvée.",
+        "es": "No se pudo encontrar el recurso solicitado.",
+        "ar": "تعذر العثور على المورد المطلوب.",
+        "ru": "Запрашиваемый ресурс не найден."
+    },
+    "bad_request": {
+        "en": "The request could not be understood by the server due to malformed syntax.",
+        "ja": "リクエストの構文が間違っていたため、サーバー側で理解できませんでした。",
+        "zh": "由于语法错误，服务器无法理解请求。",
+        "fr": "La requête n'a pas pu être comprise par le serveur en raison d'une syntaxe mal formée.",
+        "es": "La solicitud no pudo ser entendida por el servidor debido a una sintaxis mal formada.",
+        "ar": "لم يتمكن الخادم من فهم الطلب بسبب خطأ في الصياغة.",
+        "ru": "Сервер не смог понять запрос из-за неправильного синтаксиса."
+    },
+    "unauthorized": {
+        "en": "You must authenticate to get the requested response.",
+        "ja": "要求された応答を得るためには、認証が必要です。",
+        "zh": "您必须进行身份验证才能获取请求的响应。",
+        "fr": "Vous devez vous authentifier pour obtenir la réponse demandée.",
+        "es": "Debes autenticarte para obtener la respuesta solicitada.",
+        "ar": "يجب عليك التحقق من هويتك للحصول على الرد المطلوب.",
+        "ru": "Вы должны аутентифицироваться, чтобы получить запрашиваемый ответ."
+    }
+}

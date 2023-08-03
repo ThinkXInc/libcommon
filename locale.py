@@ -1,54 +1,86 @@
 #!/usr/local/bin/python
 # -*- coding:utf-8 -*-
-#
+
 # api/helpers/locale.py
-#
-# usage 1 (single message):
-#   errors_locale = Locale(f'path/to/errors.json')
-#   print(errors_locale.message('value_error', 'ja', first_name, last_name))
 
-# usage 2 (dictionary of a view):
-#   view_text_dict = Locale(f'path/to/view.json')
-#
-#  
-# errors.json
-#  {
-#     "user_already_exists": {
-#         "en": "user from $0 already exists.",
-#         "ja": "$0はすでに存在するユーザーです。",
+# Locale class loads and manages locale-specific data from JSON files.
+# It supports loading from a specified path or the default 'libcommon/locales' directory.
+# Multiple files can be loaded by passing a list of file paths.
+
+# Usage:
+# - Single file from a custom path: 
+#       Locale('application/locales/errors.json')
+
+# - Single file from default directory: 
+#       Locale('top_view.json')
+
+# - Multiple files: 
+#       Locale(['application/locales/errors.json', 'top_view.json'])
+
+# JSON file structure:
+# {
+#     "key": {
+#         "en": "English message $0",
+#         "ja": "Japanese message $0",
 #         ...
 #     },
-#   ...
-#  }
-#
-# top_view.json
-#  {
-#     "page_title": {
-#         "en": "Hello $0.",
-#         "ja": "こんにちは $0",
-#         ...
-#     },
-#   ...
-#  }
+#     ...
+# }
 
-
+import os
 import logging
 import json
 from config import Config
 from typing import List, Union
 from libcommon.language import Language
 
+LOCALES_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'locales')
+
 class Locale:
+    """
+    A class to handle locale-specific data loading.
+
+    Loads locale data from JSON files either from a specified directory or 
+    from the default location at 'libcommon/locales' if no directory is given.
+
+    Example Usage:
+    --------------
+    # Loading a locale file from a custom directory
+    locale_data = Locale('application/locales/inquiry.json').json()
+
+    # Loading a locale file from the default 'libcommon/locales' directory
+    locale_data = Locale('validation_errors.json').json()
+
+    # Loading multiple locale files from both custom and default directories
+    locale_data = Locale([
+        'application/locales/inquiry.json',
+        'validation_errors.json']).json()
+
+    """
     __required_langs__: List[str] = ['en', 'ja', 'zh'] #Language.values()  # ['en', 'ja',..] 
     __file_paths__: List[str] = []
     __dict__: dict = {}
 
-    def __init__(self, file_paths: Union[str, List[str]]):
-        self.__file_paths__ = file_paths if isinstance(file_paths, list) else [file_paths]
+    def __init__(self, file_paths: Union[str, List[str]], locales_root = LOCALES_ROOT):
+        """
+        Initializes a new instance of the Locale class.
+        """
+        self.__file_paths__ = []
+        file_paths = file_paths if isinstance(file_paths, list) else [file_paths]
+
+        for file_path in file_paths:
+            if '/' in file_path:
+                self.__file_paths__.append(file_path)
+            else:
+                self.__file_paths__.append(os.path.join(locales_root, file_path))
+
         self.__dict__ = self.load_files(self.__file_paths__)
 
     @staticmethod
     def load_files(file_paths: List[str]) -> dict:
+        """
+        Loads locale data from the specified files.
+        """
         data = {}
         for file_path in file_paths:
             with open(file_path) as f:

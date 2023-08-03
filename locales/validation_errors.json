@@ -1,0 +1,65 @@
+{
+    "required": {
+        "en": "This field is required.",
+        "ja": "このフィールドは必須です。",
+        "zh": "此字段为必填项。",
+        "fr": "Ce champ est requis.",
+        "es": "Este campo es requerido.",
+        "ar": "هذا الحقل مطلوب.",
+        "ru": "Это поле обязательно к заполнению."
+    },
+    "max_length": {
+        "en": "The input must be no more than $0 characters in length.",
+        "ja": "入力は $0 文字以下でなければなりません。",
+        "zh": "输入必须不超过 $0 个字符。",
+        "fr": "La saisie ne doit pas dépasser $0 caractères.",
+        "es": "La entrada no debe tener más de $0 caracteres.",
+        "ar": "يجب ألا يزيد الإدخال عن $0 حرفًا.",
+        "ru": "Ввод должен быть не более $0 символов."
+    },
+    "email_format": {
+        "en": "Use the standard email format. e.g. name@domain.com.",
+        "ja": "正しいメールアドレス形式で入力してください。 (例) name@domain.com.",
+        "zh": "请使用标准的电子邮件格式。例如：name@domain.com。",
+        "fr": "Utilisez le format d'email standard. Par exemple : nom@domaine.com.",
+        "es": "Use el formato estándar de correo electrónico. Ejemplo: nombre@dominio.com.",
+        "ar": "استخدم تنسيق البريد الإلكتروني القياسي. مثال: name@domain.com.",
+        "ru": "Используйте стандартный формат электронной почты. Например: name@domain.com."
+    },
+    "password_format": {
+        "en": "Password must contain at least one lowercase letter, one uppercase letter, one number, and be at least 8 characters long.",
+        "ja": "パスワードは、少なくとも1つの小文字、1つの大文字、1つの数字を含む、長さが8文字以上でなければなりません。",
+        "zh": "密码必须包含至少一个小写字母、一个大写字母、一个数字，并且长度至少为8个字符。",
+        "fr": "Le mot de passe doit contenir au moins une lettre minuscule, une lettre majuscule, un chiffre, et comporter au moins 8 caractères.",
+        "es": "La contraseña debe contener al menos una letra minúscula, una letra mayúscula, un número y tener al menos 8 caracteres de longitud.",
+        "ar": "يجب أن تحتوي كلمة المرور على حرف صغير واحد على الأقل، وحرف كبير واحد، ورقم واحد، وأن تكون بطول 8 أحرف على الأقل.",
+        "ru": "Пароль должен содержать хотя бы одну строчную букву, одну заглавную букву, одну цифру и быть не менее 8 символов в длину."
+    },
+    "tel_format": {
+        "en": "Telephone number must be in the correct format. For example: 080-1234-5678 or (800)123-4567.",
+        "ja": "正しい電話番号の形式で入力してください。 (例) 080-1234-5678",
+        "zh": "电话号码必须使用正确的格式。例如：080-1234-5678或(800)123-4567。",
+        "fr": "Le numéro de téléphone doit être dans le format correct. Par exemple : 080-1234-5678 ou (800)123-4567.",
+        "es": "El número de teléfono debe tener el formato correcto. Por ejemplo: 080-1234-5678 o (800)123-4567.",
+        "ar": "يجب أن يكون رقم الهاتف بالتنسيق الصحيح. على سبيل المثال: 080-1234-5678 أو (800)123-4567.",
+        "ru": "Номер телефона должен быть в правильном формате. Например: 080-1234-5678 или (800)123-4567."
+    },
+    "postal_code_format": {
+        "en": "Postal code must be in the correct format. e.g. A1A 1A1 or 12345.",
+        "ja": "正しい郵便番号の形式で入力してください。 (例) 123-4567 or 12345",
+        "zh": "邮政编码必须使用正确的格式。例如：12345 或 A1A 1A1。",
+        "fr": "Le code postal doit être dans le format correct. Par exemple : A1A 1A1 ou 12345.",
+        "es": "El código postal debe tener el formato correcto. Por ejemplo: A1A 1A1 o 12345.",
+        "ar": "يجب أن يكون الرمز البريدي بالتنسيق الصحيح. مثال: A1A 1A1 أو 12345.",
+        "ru": "Почтовый индекс должен быть в правильном формате. Например: A1A 1A1 или 12345."
+    },
+    "not_corresponding": {
+        "en": "The input values do not match.",
+        "ja": "入力内容が一致しません。",
+        "zh": "输入值不匹配。",
+        "fr": "Les valeurs entrées ne correspondent pas.",
+        "es": "Los valores introducidos no coinciden.",
+        "ar": "القيم المدخلة لا تتطابق.",
+        "ru": "Введенные значения не совпадают."
+    }
+}

@@ -1,0 +1,20 @@
+{
+    "api_errors": {
+        "en": "An error occurred while processing the request.",
+        "ja": "リクエストの処理中にエラーが発生しました。",
+        "zh": "处理请求时发生错误。",
+        "fr": "Une erreur s'est produite lors du traitement de la demande.",
+        "es": "Ocurrió un error al procesar la solicitud.",
+        "ar": "حدث خطأ أثناء معالجة الطلب.",
+        "ru": "При обработке запроса произошла ошибка."
+    },
+    "api_success": {
+        "en": "The request was processed successfully.",
+        "ja": "リクエストが正常に処理されました。",
+        "zh": "请求已成功处理。",
+        "fr": "La demande a été traitée avec succès.",
+        "es": "La solicitud se procesó con éxito.",
+        "ar": "تم معالجة الطلب بنجاح.",
+        "ru": "Запрос был успешно обработан."
+    }
+}
