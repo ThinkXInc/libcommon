@@ -5,11 +5,7 @@
 #
 #
 
-from flask import jsonify
-from libcommon.response.api_response import SuccessResponse, SuccessCode, APISuccess
-
-
-# Specific Patterns
+from libcommon.response.api_response import SuccessCode, APISuccess
 
 class OK(APISuccess):
     __http_success__ = SuccessCode.OK

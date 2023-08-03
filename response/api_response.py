@@ -314,7 +314,7 @@ class APISuccess():
         self.__saved_data__ = saved_data
         self.__message__ = locale.get('api_success', lang)
         
-    def http_reponse(self) -> tuple:
+    def http_response(self) -> tuple:
         return jsonify(
             {
                 'saved_data': self.__saved_data__,
