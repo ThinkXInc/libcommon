@@ -10,7 +10,7 @@ class InvalidContentType(APIError):
     __http_error__ = ErrorCode.UNSUPPORTED_MEDIA_TYPE
 
     def __init__(self, lang):
-        super().__init__(locale, 'invalid_content_type', lang)
+        super().__init__('', locale, 'invalid_content_type', lang)
 
 
 class ForbiddenError(APIError):

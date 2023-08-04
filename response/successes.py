@@ -21,4 +21,3 @@ class CREATED(APISuccess):
     def __init__(self, saved_data, message):
         self.__saved_data__ = saved_data
         self.__message__ = message
-
