@@ -9,7 +9,7 @@
 #
 #     from logger import Logger
 # 
-#     logger = Logger('LangSearch')
+#     logger = Logger('ModuleName')
 #     logger.setLevel(logger.DEBUG)
 #
 #     logger.debug("This is a debug message.")
