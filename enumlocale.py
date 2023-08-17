@@ -53,7 +53,7 @@ class EnumLocale(Enum):
             return None
 
         if index > 0 and index < len(list(cls))+1:
-            if lang is 'en':
+            if lang == 'en':
                 return cls(index).name
             else:
                 value_dict = getattr(cls, '__'+lang+'__')
