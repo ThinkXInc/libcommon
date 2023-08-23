@@ -230,7 +230,7 @@ class APIErrors():
 
     Args:
         errors (list): A list of error objects.
-        lang (str): The language for the error message.
+        message (str): The error message.
 
     Attributes:
         errors (list): A list of error objects.
@@ -256,9 +256,9 @@ class APIErrors():
             ]
         }
     """
-    def __init__(self, errors, lang):
+    def __init__(self, errors, message):
         self.errors = errors
-        self.__message__ = locale.get('api_errors', lang)
+        self.__message__ = message
     
     def http_response(self):
         error_response = ErrorResponse(
@@ -285,11 +285,11 @@ class APISuccess():
     A class to represent a successful API response.
 
     Args:
-        saved_data (Any): The data that was successfully processed.
-        lang (str): The language for the success message.
+        response_data (Any): The data that was successfully processed.
+        message (str): The success message.
 
     Attributes:
-        __saved_data__ (Any): The data that was successfully processed.
+        __response_data__ (Any): The data that was successfully processed.
         __message__ (str): The success message localized based on the 'lang' attribute.
         __http_success__ (SuccessCode): The HTTP success code.
 
@@ -299,7 +299,7 @@ class APISuccess():
 
     Response Example:
         {
-            "saved_data": {
+            "response_data": {
                 "first_name": "Gates"
             },
             "success": {
@@ -310,14 +310,14 @@ class APISuccess():
     """
     __http_success__ = SuccessCode.OK
 
-    def __init__(self, saved_data, lang):
-        self.__saved_data__ = saved_data
-        self.__message__ = locale.get('api_success', lang)
+    def __init__(self, response_data, message):
+        self.__response_data__ = response_data
+        self.__message__ = message
         
     def http_response(self) -> tuple:
         return jsonify(
             {
-                'saved_data': self.__saved_data__,
+                'response_data': self.__response_data__,
                 'success': SuccessResponse({
                     'code': self.__http_success__.value,
                     'message': self.__message__
