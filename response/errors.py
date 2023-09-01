@@ -10,8 +10,9 @@ class ProcessingError(APIError):
 
     def __init__(self, lang, locale=None, locale_key=None, field_name='', *args):
         super().__init__(
-            lang, field_name, locale if locale else Locale(LOCALE_FILE),
-            locale_key if locale_key else self.__default_locale_key__, *args)
+            lang=lang, field_name=field_name, 
+            locale=locale if locale else Locale(LOCALE_FILE),
+            locale_key=locale_key if locale_key else self.__default_locale_key__, *args)
 
 
 class InvalidContentType(APIError):
