@@ -1,4 +1,13 @@
 {
+    "processing_error": {
+        "en": "An error occurred while processing your request.",
+        "ja": "リクエストの処理中にエラーが発生しました。",
+        "zh": "处理您的请求时发生错误。",
+        "fr": "Une erreur s'est produite lors du traitement de votre demande.",
+        "es": "Ocurrió un error al procesar su solicitud.",
+        "ar": "حدث خطأ أثناء معالجة طلبك.",
+        "ru": "При обработке вашего запроса произошла ошибка."
+    },
     "invalid_content_type": {
         "en": "Invalid content type.",
         "ja": "無効なコンテンツタイプです。",
@@ -43,5 +52,14 @@
         "es": "Debes autenticarte para obtener la respuesta solicitada.",
         "ar": "يجب عليك التحقق من هويتك للحصول على الرد المطلوب.",
         "ru": "Вы должны аутентифицироваться, чтобы получить запрашиваемый ответ."
+    },
+    "rate_limit_exceeded": {
+        "en": "You have exceeded the rate limit.",
+        "ja": "レート制限を超えています。",
+        "zh": "您已超过速率限制。",
+        "fr": "Vous avez dépassé la limite de taux.",
+        "es": "Has superado el límite de velocidad.",
+        "ar": "لقد تجاوزت الحد المسموح به للسرعة.",
+        "ru": "Вы превысили ограничение скорости."
     }
 }

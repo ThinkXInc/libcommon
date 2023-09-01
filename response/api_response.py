@@ -44,8 +44,6 @@ from libcommon.locale import Locale
 from libcommon.modelbase import ModelBase
 from libcommon.enumlocale import EnumLocale
 
-# locale object with errors.json
-locale = Locale('api_response.json')
 
 class SuccessCode(EnumLocale):
     OK = 200
@@ -63,6 +61,7 @@ class ErrorCode(EnumLocale):
     FORBIDDEN = 403
     NOT_FOUND = 404
     CONFLICT = 409
+    TOO_MANY_REQUEST = 429
     UNSUPPORTED_MEDIA_TYPE = 415
     # 5xx
     INTERNAL_SERVER_ERROR = 500
@@ -198,12 +197,19 @@ class APIError(Exception):
     """
     __http_error__ = ErrorCode.BAD_REQUEST
 
-    def __init__(self, field_name, locale, locale_key, lang, *args):
-        self.__field_name__ = field_name 
-        self.__message__ = locale.get(locale_key, lang, *args)
-        self.locale = locale
-        self.lang = lang
-        
+    def __init__(
+        self,
+        lang: str,
+        locale: Locale = None,
+        locale_key: str = None,
+        field_name: str = None,
+        *args):
+            self.lang = lang
+            self.locale = locale
+            self.locale_key = locale_key if locale_key else self.__default_locale_key__
+            self.__field_name__ = field_name if field_name else ''
+            self.__message__ = self.locale.get(self.locale_key, self.lang, *args)
+       
     def __error__(self) -> dict:
         return {
                 'field_name': self.__field_name__,

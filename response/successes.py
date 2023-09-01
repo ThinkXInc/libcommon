@@ -21,3 +21,10 @@ class CREATED(APISuccess):
     def __init__(self, message, response_data=None):
         self.__response_data__ = response_data
         self.__message__ = message
+
+class ACCEPTED(APISuccess):
+    __http_success__ = SuccessCode.ACCEPTED
+
+    def __init__(self, message, response_data=None):
+        self.__response_data__ = response_data
+        self.__message__ = message
