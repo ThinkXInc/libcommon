@@ -10,9 +10,11 @@ class ProcessingError(APIError):
 
     def __init__(self, lang, locale=None, locale_key=None, field_name='', *args):
         super().__init__(
-            lang=lang, field_name=field_name, 
+            lang=lang, 
             locale=locale if locale else Locale(LOCALE_FILE),
-            locale_key=locale_key if locale_key else self.__default_locale_key__, *args)
+            locale_key=locale_key if locale_key else self.__default_locale_key__,
+            field_name=field_name,
+            *args)
 
 
 class InvalidContentType(APIError):
@@ -21,8 +23,11 @@ class InvalidContentType(APIError):
 
     def __init__(self, lang, locale=None, locale_key=None, field_name='', *args):
         super().__init__(
-            lang, field_name, locale if locale else Locale(LOCALE_FILE),
-            locale_key if locale_key else self.__default_locale_key__, *args)
+            lang=lang, 
+            locale=locale if locale else Locale(LOCALE_FILE),
+            locale_key=locale_key if locale_key else self.__default_locale_key__,
+            field_name=field_name,
+            *args)
 
 
 class ForbiddenError(APIError):
@@ -31,9 +36,11 @@ class ForbiddenError(APIError):
 
     def __init__(self, lang, locale=None, locale_key=None, field_name='', *args):
         super().__init__(
-            lang, field_name, locale if locale else Locale(LOCALE_FILE),
-            locale_key if locale_key else self.__default_locale_key__, *args
-        )
+            lang=lang, 
+            locale=locale if locale else Locale(LOCALE_FILE),
+            locale_key=locale_key if locale_key else self.__default_locale_key__,
+            field_name=field_name,
+            *args)
 
 
 class ResourceNotFoundError(APIError):
@@ -42,9 +49,11 @@ class ResourceNotFoundError(APIError):
 
     def __init__(self, lang, locale=None, locale_key=None, field_name='', *args):
         super().__init__(
-            lang, field_name, locale if locale else Locale(LOCALE_FILE),
-            locale_key if locale_key else self.__default_locale_key__, *args
-        )
+            lang=lang, 
+            locale=locale if locale else Locale(LOCALE_FILE),
+            locale_key=locale_key if locale_key else self.__default_locale_key__,
+            field_name=field_name,
+            *args)
 
 
 class BadRequestError(APIError):
@@ -53,9 +62,11 @@ class BadRequestError(APIError):
 
     def __init__(self, lang, locale=None, locale_key=None, field_name='', *args):
         super().__init__(
-            lang, field_name, locale if locale else Locale(LOCALE_FILE),
-            locale_key if locale_key else self.__default_locale_key__, *args
-        )
+            lang=lang, 
+            locale=locale if locale else Locale(LOCALE_FILE),
+            locale_key=locale_key if locale_key else self.__default_locale_key__,
+            field_name=field_name,
+            *args)
 
 
 class UnauthorizedError(APIError):
@@ -64,9 +75,11 @@ class UnauthorizedError(APIError):
 
     def __init__(self, lang, locale=None, locale_key=None, field_name='', *args):
         super().__init__(
-            lang, field_name, locale if locale else Locale(LOCALE_FILE),
-            locale_key if locale_key else self.__default_locale_key__, *args
-        )
+            lang=lang, 
+            locale=locale if locale else Locale(LOCALE_FILE),
+            locale_key=locale_key if locale_key else self.__default_locale_key__,
+            field_name=field_name,
+            *args)
 
 
 class RateLimitExceeded(APIError):
@@ -75,9 +88,11 @@ class RateLimitExceeded(APIError):
 
     def __init__(self, lang, locale=None, locale_key=None, field_name='', *args):
         super().__init__(
-            lang, field_name, locale if locale else Locale(LOCALE_FILE),
-            locale_key if locale_key else self.__default_locale_key__, *args
-        )
+            lang=lang, 
+            locale=locale if locale else Locale(LOCALE_FILE),
+            locale_key=locale_key if locale_key else self.__default_locale_key__,
+            field_name=field_name,
+            *args)
 
 
 class ValidationErrors(APIErrors):
