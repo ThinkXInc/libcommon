@@ -1,7 +1,7 @@
 import inspect
 import importlib
 from libcommon.locale import Locale
-from libcommon.color import bold, cyan, magenta, yellow, green
+from libcommon.color import bold, cyan, magenta, yellow, green, red
 from libcommon.response.successes import OK, ACCEPTED
 from libcommon.response.errors import ProcessingError
 
@@ -96,6 +96,7 @@ def fetch_worker_results(
             response_data
         ).http_response()
     elif not all(key in result for key in result_keys):
+        print(red(result))
         return ProcessingError(
             lang, locale, locale_key=locale_key_unexpected_result).http_response()
     else:
