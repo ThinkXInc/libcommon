@@ -3,16 +3,31 @@
 #
 # models/enums/language.py
 #
-# The Language class is an enumeration of language codes and their corresponding names. 
+# Language Enum Module.
 # 
-# This class extends EnumLocale and provides a mapping between the ISO 639 language 
-# codes and their names in the represented languages. The class also provides a method 
-# to get this mapping as a dictionary.
+# This module provides a `Language` enumeration that represents different languages 
+# following the ISO 639-1 standard language codes. Each language has several attributes, 
+# including its ISO code, name, and regional variations.
 # 
+# The main class defined in this module is:
+#     - Language : an enumeration for various languages.
+# 
+# References:
+#     ISO 639-1 standard language codes:
+#     https://www.andiamo.co.uk/resources/iso-language-codes/
+#
 # Attributes:
 #     __ja__ (dict): A dictionary with language codes as keys and names in Japanese as values.
 #     __en__ (dict): A dictionary with language codes as keys and names in English as values.
 #     __label__ (dict): A dictionary with language codes as keys and names in the represented languages as values.
+# 
+# Examples:
+#     >>> Language.JA
+#     'ja'
+#     >>> Language.__ja__[Language.JA]
+#     '日本語'
+#     >>> Language.__en__[Language.JA]
+#     'Japanese'
 #
 # usage:
 #  > Language.values()
