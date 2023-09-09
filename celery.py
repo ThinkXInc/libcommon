@@ -48,7 +48,8 @@ def fetch_worker_results(
         locale_key_still_processing: str,
         locale_key_success: str,
         result_keys: list,
-        additional_response_data: dict = {}):
+        additional_response_data: dict = {},
+        update_callback=None):
     """
     Common function to fetch results from Celery tasks.
     
@@ -100,6 +101,11 @@ def fetch_worker_results(
         return ProcessingError(
             lang, locale, locale_key=locale_key_unexpected_result).http_response()
     else:
+        if update_callback:
+            response = update_callback(result)
+            if isinstance(response, Exception):  # or some other validation to check if the callback returns an error response
+                return response
+
         response_data = {
             'task_id': task.id,
             **additional_response_data  # Merge additional data into the response
