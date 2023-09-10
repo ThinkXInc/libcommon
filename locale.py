@@ -110,10 +110,10 @@ class Locale:
                         or if a placeholder in the message cannot be replaced by the provided arguments.
         """
         if key not in self.__dict__:
-            raise KeyError(f'No key {key} found in errors.json')
+            raise KeyError(f'No key "{key}" found in {self.__file_paths__}')
 
         if lang not in self.__dict__[key]:
-            raise ValueError(f'No lang {lang} of key {key} found in errors.json')
+            raise ValueError(f'No lang {lang} of key "{key}" found in {self.__file_paths__}')
 
         m = self.__dict__[key][lang]
         for i, arg in enumerate(args):
