@@ -220,11 +220,7 @@ class APIError(Exception):
 
     def http_response(self) -> tuple:
         error_response = ErrorResponse(self.__error__())
-        return jsonify(
-            {
-                'saved_data': None,
-                'error': error_response.json()
-            }), self.__http_error__.value
+        return error_response.json(), self.__http_error__.value
 
     def __str__(self):
         return repr(self.__message__)
