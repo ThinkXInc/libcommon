@@ -1,7 +1,3 @@
-# README.md
-
----
-
 ## Vector Database with Sentence Encoder
 
 ### Description
