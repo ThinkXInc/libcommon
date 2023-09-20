@@ -113,7 +113,7 @@ class Locale:
             raise KeyError(f'No key "{key}" found in {self.__file_paths__}')
 
         if lang not in self.__dict__[key]:
-            raise ValueError(f'No lang {lang} of key "{key}" found in {self.__file_paths__}')
+            raise ValueError(f'No lang "{lang}" of key "{key}" found in {self.__file_paths__}')
 
         m = self.__dict__[key][lang]
         for i, arg in enumerate(args):

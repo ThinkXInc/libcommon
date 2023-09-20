@@ -152,6 +152,44 @@ class ErrorResponse(ResponseBase):
     __default_values__ = {}
 
 
+class ValidationError(Exception):
+    """
+    Raised when there's a validation error in the application.
+
+    Methods:
+        __init__(self, key, value, locale, locale_key, lang, *args): Constructor method.
+        __error__(self) -> dict: Returns the error as a dictionary.
+        __str__(self): Returns a string representation of the error message.
+
+    Examples:
+        error = ValidationError('email', '', locale, 'required', 'en')
+        print(error.__error__())
+        >> {
+            'field_name': 'email',
+            'value': '',
+            'message': 'This field is required'
+            }
+    """
+    
+    def __init__(self, key, value, locale, locale_key, lang, *args):
+        self.field_name = key
+        self.value = value
+        self.locale = locale
+        self.locale_key = locale_key
+        self.lang = lang
+        self.message = self.locale.get(self.locale_key, self.lang, *args)
+        
+    def __error__(self) -> dict:
+        return {
+            'field_name': self.field_name,
+            'value': self.value,
+            'message': self.message
+        }
+
+    def __str__(self):
+        return repr(self.message)
+
+
 class APIError(Exception):
     """
     A custom API Error class that is used for raising application-specific errors.
@@ -169,31 +207,28 @@ class APIError(Exception):
         __str__(self): Returns a string representation of the error message.
 
     Examples:
-        error = APIError('invalid_id', '123', locale, 'INVALID_ID', 'en')
+        error = APIError('first_name', '123', locale, 'INVALID_ID', 'en')
         print(error.__error__())
         >> {
-            'field_name': 'invalid_id',
+            'field_name': 'first_name',
             'code': 400,
             'reason': 'BAD_REQUEST',
-            'message': 'The ID 123 is invalid.'
+            'message': 'The first name 123 is invalid.'
            }
 
         print(error.__error_obj__())
         >> (
                 {
-                    'saved_data': None,
-                    'error': {
-                        'field_name': 'invalid_id',
-                        'code': 400,
-                        'reason': 'BAD_REQUEST',
-                        'message': 'The ID 123 is invalid.'
-                    }
+                    'field_name': 'first_name',
+                    'code': 400,
+                    'reason': 'BAD_REQUEST',
+                    'message': 'The first_name 123 is invalid.'
                 }, 
                 400
             )
 
         print(error)
-        >> 'The ID 123 is invalid.'
+        >> 'The first_name 123 is invalid.'
     """
     __http_error__ = ErrorCode.BAD_REQUEST
 
@@ -243,12 +278,9 @@ class APIErrors():
 
     Response Example:
         {
-            "saved_data": None,
-            "error": {
-                "code": 400,
-                "reason": "BAD_REQUEST",
-                "message": "An error occurred while processing the request."
-            },
+            "code": 400,
+            "reason": "BAD_REQUEST",
+            "message": "An error occurred while processing the request."
             "errors": [
                 {
                     "key": "first_name",
@@ -272,11 +304,8 @@ class APIErrors():
         )
         error_dicts = [e.__error__() for e in self.errors]
         print(error_dicts)
-        return jsonify({
-            'saved_data': None,
-            'error': error_response.json(),
-            'errors': error_dicts,  # list(map(lambda d: d.json(), error_dicts))
-            }), ErrorCode.BAD_REQUEST.value
+        error_response['errors'] = error_dicts
+        return error_response.json(), ErrorCode.BAD_REQUEST.value
 
     def __str__(self):
         return repr(self.__message__)
@@ -301,13 +330,10 @@ class APISuccess():
 
     Response Example:
         {
-            "response_data": {
-                "first_name": "Gates"
-            },
-            "success": {
-                "code": 200,
-                "message": "The request was processed successfully."
-            }
+            "first_name": "Gates"
+            "status": "success",
+            "code": 200,
+            "message": "The request was processed successfully."
         }
     """
     __http_success__ = SuccessCode.OK
@@ -317,14 +343,13 @@ class APISuccess():
         self.__message__ = message
         
     def http_response(self) -> tuple:
-        return jsonify(
-            {
-                'response_data': self.__response_data__,
-                'success': SuccessResponse({
-                    'code': self.__http_success__.value,
-                    'message': self.__message__
-                }).json()
-            }), self.__http_success__.value
+        response = {
+            **self.__response_data__,
+            'status': 'success',
+            'code': self.__http_success__.value,
+            'message': self.__message__
+        }
+        return jsonify(response), self.__http_success__.value
 
     def __str__(self):
         return repr(self.__message__)
