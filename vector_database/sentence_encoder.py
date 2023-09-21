@@ -9,7 +9,7 @@ from transformers import AutoTokenizer, AutoModel
 
 from libcommon.logger import Logger
 logger = Logger('SentenceEncoder')
-logger.setLevel()
+logger.setLevel(logger.INFO)
 
 class SentenceEncoder:
 
@@ -18,6 +18,7 @@ class SentenceEncoder:
             checkpoint: str,
             embedding_dim: int = 512,
             tokenizer_checkpoint: str = None,
+            tokenizer = None,
             device: str = 'cuda:1'
     ):
         """Class that finds an embedding of simple text
@@ -26,6 +27,7 @@ class SentenceEncoder:
             checkpoint (str): Path to the saved model and possibly tokenizer.
             tokenizer_checkpoint (str, optional): Path to the saved tokenizer. If none, the tokenizer will be assumed to
                 exist at the same path as the model. (Default = None)
+            tokenizer (object, optional): If a specific tokenizer is set, this tokenizer is prioritized.
             device (any, optional): Argument to pass to torch.*.to(). (Default = None)
         """
         self.checkpoint = checkpoint
@@ -37,7 +39,7 @@ class SentenceEncoder:
 
         # if tokenizer check point is not set, use model's
         logger.info(f'Load tokenizer from checkpoint {self.checkpoint}..')
-        self.tokenizer = AutoTokenizer.from_pretrained(
+        self.tokenizer = tokenizer or AutoTokenizer.from_pretrained(
             tokenizer_checkpoint or checkpoint)
 
         self.embedding_dim = embedding_dim

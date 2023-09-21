@@ -13,7 +13,7 @@ from libcommon.vector_database.sentence_encoder import SentenceEncoder
 
 from libcommon.logger import Logger
 logger = Logger('VectorDatabase')
-logger.setLevel()
+logger.setLevel(logger.INFO)
 
 class CollectionOptions(BaseModel):
     """
@@ -83,7 +83,7 @@ class QueryFilter(BaseModel):
             )
 
 
-class VectorDataBase:
+class VectorDatabase:
     def __init__(
             self,
             host: str = None,

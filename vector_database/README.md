@@ -14,21 +14,24 @@ This software provides an interface for managing and querying vectorized represe
 To install the necessary libraries, you can use:
 
 ```
-pip install qdrant_client transformers
+pip install pydantic qdrant_client transformers
 ```
 
 # Basic Sample Usage/API
 
-#### VectorDataBase
+#### VectorDatabase & SentenceEncoder
 
 1. **Initialization**:
 
-   Create an instance of the `VectorDataBase`.
+   Create an instance of the `VectorDatabase`.
 
    ```python
    from libcommon.vector_database.sentence_encoder import SentenceEncoder
-   encoder = SentenceEncoder(checkpoint="path_to_checkpoint")
-   database = VectorDataBase(host="localhost", port=6333, encoder=encoder)
+   from libcommon.vector_database.vector_database import VectorDatabase
+   path_to_checkpoint = 'sentence-transformers/all-mpnet-base-v2'
+   embedding_dim = 768
+   encoder = SentenceEncoder(checkpoint=path_to_checkpoint, embedding_dim=embedding_dim)
+   database = VectorDatabase(host="localhost", port=6333, encoder=encoder)
    ```
 
 2. **Collections**:
@@ -36,14 +39,15 @@ pip install qdrant_client transformers
    - Check if a collection exists:
 
      ```python
-     exists = database.collection_exists("collection_name")
+     collection_name = "my_collection"
+     exists = database.collection_exists(collection_name)
      ```
 
    - Create a collection:
 
      ```python
      config = {...}  # Dictionary specifying collection configuration
-     database.create_collection("collection_name", collection_config=config)
+     database.create_collection(collection_name, collection_config=config)
      ```
 
 3. **Operations**:
@@ -51,13 +55,13 @@ pip install qdrant_client transformers
    - Save a sentence:
 
      ```python
-     uuid = database.save("This is a sample sentence.", "collection_name")
+     uuid = database.save("This is a sample sentence.", collection_name)
      ```
 
    - Search for a sentence:
 
      ```python
-     results = database.search("Find me a similar sentence.", "collection_name", num_results=5)
+     results = database.search("Find me a similar sentence.", collection_name, num_results=5)
      ```
 
 #### SentenceEncoder
@@ -68,8 +72,26 @@ pip install qdrant_client transformers
 
    ```python
    from libcommon.vector_database.sentence_encoder import SentenceEncoder
-   encoder = SentenceEncoder(checkpoint="path_to_checkpoint")
+   path_to_checkpoint = 'path_to_checkpoint'
+   encoder = SentenceEncoder(checkpoint=path_to_checkpoint)
    ```
+
+   You can specify the tokenizer model.  Oterwise, `AutoTokenizer(path_to_checkpoint)` is used.
+   ```python
+   from libcommon.vector_database.sentence_encoder import SentenceEncoder
+   path_to_checkpoint = 'path/to/model'
+   tokenizer_checkpoint = 'path/to/tokenizer'
+   encoder = SentenceEncoder(checkpoint=path_to_checkpoint, tokenizer_checkpoint=tokenizer_checkpoint)
+   ```
+
+   You can also set a tokenizer.
+   ```python
+   from libcommon.vector_database.sentence_encoder import SentenceEncoder
+   path_to_checkpoint = 'path/to/model'
+   tokenizer = AutoTokenizer('path/to/tokenizer')
+   encoder = SentenceEncoder(checkpoint=path_to_checkpoint, tokenizer=tokenizer)
+   ```
+
 
 2. **Encode a Sentence**:
 
@@ -80,7 +102,7 @@ pip install qdrant_client transformers
    ```
 
 
-# Sentence Encoder and Vector Database Integration
+# Usage Examples 
 
 This README provides an overview of the integration of sentence encoders (like MPNet and MiniLM) with a vector database for document storage and retrieval.
 
@@ -88,18 +110,19 @@ This README provides an overview of the integration of sentence encoders (like M
 
 Before utilizing the vector database, you need to initialize your sentence encoders. In our example, we're using two different models: MPNet and MiniLM, both loaded from `sentence-transformers`.
 
+### Initialize MPNet encoder
 ```python
-max_sequence_size = 4096
+from libcommon.vector_database.sentence_encoder import SentenceEncoder
 encoder_mpnet_checkpoint = 'sentence-transformers/all-mpnet-base-v2'
 mpnet_embedding_dim = 768
-encoder_minilm_checkpoint = 'sentence-transformers/all-MiniLM-L6-v2'
-minilm_embedding_dim = 384
-
-# Initialize MPNet encoder
 encoder_mpnet = SentenceEncoder(
     encoder_mpnet_checkpoint, embedding_dim=mpnet_embedding_dim, device='cuda:2')
+```
 
-# Initialize MiniLM encoder
+### Initialize MiniLM encoder
+```python
+encoder_minilm_checkpoint = 'sentence-transformers/all-MiniLM-L6-v2'
+minilm_embedding_dim = 384
 encoder_minilm = SentenceEncoder(
     encoder_minilm_checkpoint, embedding_dim=minilm_embedding_dim, device='cuda:3')
 ```
@@ -108,22 +131,22 @@ encoder_minilm = SentenceEncoder(
 
 ### Initialize VectorDatabase
 ```python
-vdb = VectorDataBase(
+from libcommon.vector_database.vector_database import VectorDatabase
+vdb = VectorDatabase(
     host=db_host,  # Your running qdrant server host
     port=db_port,  # Your running qdrant server port
     encoder=encoder,  # SentenceEncoder instance
     test_on_memory=False  # if true, write only to memory
 )
-
-# create collection if not exist
+```
+### Create a collection if not exist
+```python
 collection_name = \
     vdb.knowledgebase_collection_name(user_id)
 if not vdb.collection_exists(collection_name):
     vdb.create_collection(collection_name=collection_name)
 ```
-
-### Saving Documents
-
+### Save a document
 example:
 ```python
 def save_document(self, doc: str, keywords: Optional[List[str]] = []) -> None:
@@ -134,9 +157,7 @@ def save_document(self, doc: str, keywords: Optional[List[str]] = []) -> None:
         keywords=keywords,
         collection_name=collection_name)
 ```
-
-### Searching for Relevant Documents
-
+### Search for Relevant Documents
 example:
 ```python
 def search_relevant_documents(self, query: str, num_results=3) -> List[str]:
