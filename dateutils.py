@@ -22,7 +22,7 @@ from flask import jsonify
 from pytz import timezone
 from datetime import datetime, timedelta
 sys.path.append('../')
-from general.api_response import ErrorResponse, ErrorCode
+from libcommon.response.api_response import ErrorResponse, ErrorCode
 
 ISO8061_FORMAT = "%Y-%m-%d'T'%H:%M:%S.%f%z"
 
@@ -44,13 +44,13 @@ class InvalidISOFormatError(Exception):
         return repr(f'{self.iso_formatted_string} is invalid as iso formatted timestamp.')
 
 
-def datetime_to_iso8061(date=None, tz="Asia/Tokyo"):
+def datetime_to_iso8061(date: datetime = None, tz = "Asia/Tokyo") -> str:
     date_with_timezone = date.astimezone(timezone(tz))  # return the user's local time
     iso_formatted = datetime.strftime(date_with_timezone, ISO8061_FORMAT)
     return iso_formatted
 
 
-def iso8061_to_datetime(iso_formatted_string):
+def iso8061_to_datetime(iso_formatted_string) -> datetime:
 
     # temporary measures
     # TODO: delete this code
@@ -73,7 +73,6 @@ def expiration_datetime(after_hours=48):
     return datetime.now() + timedelta(hours=after_hours)
 
 if __name__ == "__main__": # Function Test
-    datetime_string = datetime.now()
     iso8061 = "2021-01-31'T'16:25:08.309648+0900"
-    print('datetime: {0}, convert to iso8061: {1}'.format(datetime_string, datetime_to_iso8061(date=datetime_string)))
+    print('datetime: {0}, convert to iso8061: {1}'.format(datetime_string, datetime_to_iso8061(date=datetime.now())))
     print('iso8061: {0}, convert to datetime: {1}'.format(iso8061, iso8061_to_datetime(iso8061)))
