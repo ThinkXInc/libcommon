@@ -17,90 +17,6 @@ To install the necessary libraries, you can use:
 pip install pydantic qdrant_client transformers
 ```
 
-# Basic Sample Usage/API
-
-#### VectorDatabase & SentenceEncoder
-
-1. **Initialization**:
-
-   Create an instance of the `VectorDatabase`.
-
-   ```python
-   from libcommon.vector_database.sentence_encoder import SentenceEncoder
-   from libcommon.vector_database.vector_database import VectorDatabase
-   path_to_checkpoint = 'sentence-transformers/all-mpnet-base-v2'
-   embedding_dim = 768
-   encoder = SentenceEncoder(checkpoint=path_to_checkpoint, embedding_dim=embedding_dim)
-   database = VectorDatabase(host="localhost", port=6333, encoder=encoder)
-   ```
-
-2. **Collections**:
-
-   - Check if a collection exists:
-
-     ```python
-     collection_name = "my_collection"
-     exists = database.collection_exists(collection_name)
-     ```
-
-   - Create a collection:
-
-     ```python
-     config = {...}  # Dictionary specifying collection configuration
-     database.create_collection(collection_name, collection_config=config)
-     ```
-
-3. **Operations**:
-
-   - Save a sentence:
-
-     ```python
-     uuid = database.save("This is a sample sentence.", collection_name)
-     ```
-
-   - Search for a sentence:
-
-     ```python
-     results = database.search("Find me a similar sentence.", collection_name, num_results=5)
-     ```
-
-#### SentenceEncoder
-
-1. **Initialization**:
-
-   Load the model and tokenizer:
-
-   ```python
-   from libcommon.vector_database.sentence_encoder import SentenceEncoder
-   path_to_checkpoint = 'path_to_checkpoint'
-   encoder = SentenceEncoder(checkpoint=path_to_checkpoint)
-   ```
-
-   You can specify the tokenizer model.  Oterwise, `AutoTokenizer(path_to_checkpoint)` is used.
-   ```python
-   from libcommon.vector_database.sentence_encoder import SentenceEncoder
-   path_to_checkpoint = 'path/to/model'
-   tokenizer_checkpoint = 'path/to/tokenizer'
-   encoder = SentenceEncoder(checkpoint=path_to_checkpoint, tokenizer_checkpoint=tokenizer_checkpoint)
-   ```
-
-   You can also set a tokenizer.
-   ```python
-   from libcommon.vector_database.sentence_encoder import SentenceEncoder
-   path_to_checkpoint = 'path/to/model'
-   tokenizer = AutoTokenizer('path/to/tokenizer')
-   encoder = SentenceEncoder(checkpoint=path_to_checkpoint, tokenizer=tokenizer)
-   ```
-
-
-2. **Encode a Sentence**:
-
-   Get the vector representation:
-
-   ```python
-   vector = encoder("This is a sample sentence.")
-   ```
-
 
 # Usage Examples 
 
@@ -127,8 +43,6 @@ encoder_minilm = SentenceEncoder(
     encoder_minilm_checkpoint, embedding_dim=minilm_embedding_dim, device='cuda:3')
 ```
 
-## Vector Database Integration
-
 ### Initialize VectorDatabase
 ```python
 from libcommon.vector_database.vector_database import VectorDatabase
@@ -146,27 +60,55 @@ collection_name = \
 if not vdb.collection_exists(collection_name):
     vdb.create_collection(collection_name=collection_name)
 ```
+
 ### Save a document
-example:
+
 ```python
-def save_document(self, doc: str, keywords: Optional[List[str]] = []) -> None:
-    """Stores a document in the external knowledgebase."""
-    logger.debug(f'save :\ndoc => {doc}\nkeywords => {keywords}')
-    vdb.save(
-        sentence=doc,
-        keywords=keywords,
-        collection_name=collection_name)
+doc_instance = vdb.save(
+    collection_name=collection_name,
+    sentence=doc,
+    keywords=keywords
+)
 ```
+
 ### Search for Relevant Documents
-example:
+
 ```python
-def search_relevant_documents(self, query: str, num_results=3) -> List[str]:
-    """Search relevant documents."""
-    return vdb.search(
-        query,
-        collection_name,
-        num_results=num_results)
+documents = vdb.search(
+    sentence=query,
+    collection_name=collection_name,
+    num_results=num_results
+)
 ```
+
+### Find a Document
+
+```python
+doc = vdb.find_one(
+    collection_name=collection_name,
+    new_sentence=new_sentence,
+    keywords=keywords,
+    metadata=metadata
+)
+```
+
+### Find and Update a Document
+
+```python
+updated_doc = vdb.find_one_and_update(
+    collection_name=collection_name,
+    new_sentence=new_sentence,
+    keywords=keywords,
+    metadata=metadata
+)
+```
+
+### Delete a Collection
+
+```python
+vdb.delete_collection(collection_name=collection_name)
+```
+
 
 ### Configurable Options
 
