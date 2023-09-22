@@ -1,5 +1,5 @@
 import sys
-sys.path.append('../')
+sys.path.append('../../')
 
 from libcommon.vector_database.sentence_encoder import SentenceEncoder
 from libcommon.vector_database.vector_database import VectorDatabase, Document
@@ -7,7 +7,8 @@ from libcommon.color import red, yellow, cyan, green
 from bson.objectid import ObjectId
 from uuid import uuid4
 from datetime import datetime
-from libcommon.dateutils import datetime_to_iso8061
+from pydantic import BaseModel
+from typing import Dict, List, Union, Optional
 import time
 
 # Setup and Initialization
@@ -28,10 +29,18 @@ vdb = VectorDatabase(
     test_on_memory=False
 )
 
+class Metadata(BaseModel):
+    material_id: str
+    user_id: str
+    keywords: List[str] = []
+    text: str
+    title: str 
+
 # Ensure collection_name and material_id are provided
 user_identifier = "USER001"
 collection_name = vdb.knowledgebase_collection_name(user_identifier)
 material_id = str(ObjectId())
+
 
 # Test block 1: Collection existence and creation
 try:
@@ -46,12 +55,13 @@ except Exception as e:
 
 # Test block 2: Save document if not already present based on keywords
 try:
+    title = 'Principle 1'
     sentence = 'The first principle is that you must not fool yourself — and you are the easiest person to fool.'
     keywords = ['Hello world', 'Test']
-    document = vdb.find_one(collection_name=collection_name, keywords=keywords)
+    metadata = Metadata(material_id=material_id, user_id=user_identifier, keywords=keywords, text=sentence, title=title)
+    document = vdb.find_one(collection_name=collection_name, find_key="keywords", metadata=metadata.dict())
     if not document:
-        metadata = {'material_id': material_id, 'user_id': user_identifier, 'updated': datetime_to_iso8061(datetime.now())}
-        vdb.save(collection_name=collection_name, sentence=sentence, keywords=keywords, metadata=metadata)
+        vdb.save(collection_name=collection_name, sentence=sentence, metadata=metadata.dict())
     print(green('Test 2 passed: Save document based on keywords'))
 except Exception as e:
     print(red(e))
@@ -63,11 +73,12 @@ time.sleep(2)
 
 # Test block 3: Save another document based on material_id
 try:
+    title = 'Principle 1'
     sentence = 'For a successful technology, reality must take precedence over public relations, for nature cannot be fooled.'
-    document = vdb.find_one(collection_name=collection_name, metadata={"material_id": material_id})
+    metadata = Metadata(material_id=material_id, user_id=user_identifier, keywords=keywords, text=sentence, title=title)
+    document = vdb.find_one(collection_name=collection_name, find_key="material_id", metadata=metadata.dict())
     if not document:
-        metadata = {'material_id': material_id, 'user_id': user_identifier, 'updated': datetime_to_iso8061(datetime.now())}
-        vdb.save(collection_name=collection_name, sentence=sentence, keywords=keywords, metadata=metadata)
+        vdb.save(collection_name=collection_name, sentence=sentence, metadata=metadata.dict())
     print(green('Test 3 passed: Save another document based on material_id'))
 except Exception as e:
     print(red(e))
@@ -75,8 +86,10 @@ except Exception as e:
 
 # Test block 4: Update document by material_id
 try:
+    title = 'Reality'
     new_sentence = 'This is the new reality =>' + datetime.now().strftime('%H:%M:%S')
-    results = vdb.find_one_and_update(collection_name, new_sentence, metadata={'material_id': material_id})
+    metadata = Metadata(material_id=material_id, user_id=user_identifier, keywords=keywords, text=sentence, title=title)
+    results = vdb.find_one_and_update(collection_name, find_key="material_id", new_sentence=new_sentence, metadata=metadata)
     print(green('Test 4 passed: Update document by material_id'))
 except Exception as e:
     print(red(e))

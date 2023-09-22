@@ -3,6 +3,7 @@
 from pydantic import BaseModel
 from typing import Dict, List, Union, Optional
 from uuid import uuid4
+from datetime import datetime
 
 from pydantic import ValidationError
 from qdrant_client import QdrantClient
@@ -13,9 +14,6 @@ from libcommon.vector_database.sentence_encoder import SentenceEncoder
 
 from libcommon.color import bold, cyan, magenta, yellow, green, red
  
-from datetime import datetime
-from libcommon.dateutils import datetime_to_iso8061
-
 from libcommon.logger import Logger
 logger = Logger('VectorDatabase')
 logger.setLevel(logger.DEBUG)
@@ -44,8 +42,8 @@ class CollectionOptions(BaseModel):
 
 class Document(BaseModel):
     id: str
-    payload: Dict
     vector: Optional[List[float]]
+    payload: Dict
 
 
 class VectorDatabase:
@@ -135,7 +133,6 @@ class VectorDatabase:
             self,
             collection_name: str,
             sentence: str,
-            keywords: Optional[List[str]] = None,
             metadata: Optional[dict] = None,
             id: Optional[str] = None
         ) -> Document:
@@ -144,9 +141,8 @@ class VectorDatabase:
         Args:
             sentence (str): String to put to the Qdrant collection.
             collection_name (str): Name of the Qdrant collection to which to connect.
-            id (Optional[str]): must be UUID. uuid4().hex (32-character hexadecimal) is used if not set.
-            keywords (Optional[List[str]]): Optional keywords related to the sentence.
             metadata (Optional[dict]): Additional metadata for the payload.
+            id (Optional[str]): must be UUID. uuid4().hex (32-character hexadecimal) is used if not set.
 
         Returns:
             Document: Document instance with id, text, keywords, and vector.
@@ -157,7 +153,7 @@ class VectorDatabase:
         # Creating the payload
         payload = {
             "text": sentence,
-            "keywords": keywords if keywords else []
+            "updated": datetime.now().isoformat()  # Add "updated" timestamp to the payload
         }
         
         # Merge the metadata into the payload
@@ -201,19 +197,63 @@ class VectorDatabase:
             raise e
 
         # Return the Document instance
-        return Document(id=uuid, text=sentence, keywords=keywords if keywords else [], vector=vector, payload=payload)
+        return Document(id=uuid, text=sentence, vector=vector, payload=payload)
 
+    def filter_condition(self, find_key: str, must_match_any: bool, metadata: dict) -> List[FieldCondition]:
+        """Generates filter conditions for searching in the Qdrant store.
+
+        Args:
+            find_key (str): Key by which to search a document.
+            must_match_any (bool): Whether to match any keyword or all keywords.
+            metadata (dict): Metadata to match against.
+
+        Returns:
+            List[FieldCondition]: A list of field conditions for searching.
+        """
+        filter_conditions = []
+
+        # Handling for keywords
+        if find_key == "keywords" and "keywords" in metadata:
+            keywords = metadata.pop("keywords", [])
+            if must_match_any:
+                match_condition = MatchAny(any=keywords)
+                filter_conditions.append(FieldCondition(key="keywords", match=match_condition))
+            else:
+                keyword_conditions = [FieldCondition(key="keywords", match=MatchValue(value=keyword)) for keyword in keywords]
+                filter_conditions.extend(keyword_conditions)
+
+        # Handling for other metadata
+        if find_key in metadata:
+            filter_conditions.append(FieldCondition(key=find_key, match=MatchValue(value=metadata[find_key])))
+
+        return filter_conditions
 
     def search(
             self,
             sentence: str,
             collection_name: str,
-            keywords: List[str] = None,
+            find_key: Optional[str] = None,  # Added find_key argument
             metadata: Optional[dict] = {},
             num_results: int = 3,
             must_match_any: bool = True
     ) -> List[Document]:
-        
+        """
+        Search for documents in a collection based on a sentence, optional keywords, and optional metadata.
+
+        Args:
+            sentence (str): String to search in the Qdrant collection.
+            collection_name (str): Name of the Qdrant collection to search.
+            find_key (str, optional): Key by which to search a document. If None, only vector search is conducted.
+                If set to 'keywords', search will be filtered based on the `keywords` list. If set to a key in `metadata`,
+                the filter will apply only to the value of that key.
+            keywords (List[str], optional): Keywords related to the sentence.
+            metadata (dict, optional): Additional metadata for the payload.
+            num_results (int, optional): Number of results to return.
+            must_match_any (bool, optional): Whether to match any keyword or all keywords.
+
+        Returns:
+            List[Document]: List of matching documents.
+        """
         embedding = self.encoder(sentence).squeeze().tolist()
 
         query = {
@@ -222,24 +262,8 @@ class VectorDatabase:
             "limit": num_results
         }
 
-        # Construct filter conditions without using the Payload class
-        filter_conditions = []
-        
-        # Create conditions for keywords
-        if keywords:
-            if must_match_any:
-                match_condition = MatchAny(any=keywords)
-                filter_conditions.append(FieldCondition(key="keywords", match=match_condition))
-            else:
-                keyword_conditions = [FieldCondition(key="keywords", match=MatchValue(value=keyword)) for keyword in keywords]
-                filter_conditions.extend(keyword_conditions)
-                
-        # Create conditions for metadata
-        if metadata:
-            metadata_conditions = [FieldCondition(key=k, match=MatchValue(value=v)) for k, v in metadata.items()]
-            filter_conditions.extend(metadata_conditions)
-
-        # Adding filter conditions to the query
+        filter_conditions = self.filter_condition(find_key, must_match_any, metadata)
+    
         if filter_conditions:
             query["query_filter"] = Filter(must=filter_conditions) if must_match_any else Filter(should=filter_conditions)
 
@@ -262,25 +286,30 @@ class VectorDatabase:
         return documents
 
 
-    def find_one(self, collection_name: str, metadata: dict = None, keywords: list = None) -> Optional[Document]:
+    def find_one(
+            self,
+            collection_name: str,
+            find_key: str,  # Added find_key as required argument
+            metadata: dict = None) -> Optional[Document]:
         """
-        Find a document in the collection that matches the provided metadata or keywords.
+        Find a document in the collection that matches the provided find_key, metadata, or keywords.
 
         Args:
             collection_name (str): Name of the Qdrant collection to search.
-            metadata (dict): Metadata to match against. 
-            keywords (list): List of keywords to match against.
+            find_key (str): Key by which to search a document.
+            metadata (dict, optional): Metadata to match against. 
 
         Returns:
             Document: Matching document or None if not found.
         """
-        # Return None if neither metadata nor keywords are provided
-        if not metadata and not keywords:
-            return None
 
-        results = self.search(sentence="", collection_name=collection_name, 
-                              keywords=keywords, metadata=metadata, 
-                              num_results=1, must_match_any=True)
+        results = self.search(
+            sentence="",
+            collection_name=collection_name, 
+            find_key=find_key, 
+            metadata=metadata,
+            num_results=1, 
+            must_match_any=True)
 
         return results[0] if results else None
 
@@ -288,14 +317,15 @@ class VectorDatabase:
     def find_one_and_update(
             self, 
             collection_name: str, 
+            find_key: str,  # Added find_key as required argument
             new_sentence: str, 
-            keywords: Optional[List[str]] = None,
-            metadata: Optional[dict] = None
-        ) -> Union[bool, Document]:
-        """Updates a stored entity by its unique id.
+            metadata: Optional[dict] = None) -> Union[bool, Document]:
+        """
+        Updates a stored entity by its unique id.
 
         Args:
             collection_name (str): Name of the Qdrant collection to update.
+            find_key (str): Key by which to search a document.
             new_sentence (str): The new sentence value to update.
             keywords (Optional[List[str]]): Optional updated keywords related to the sentence.
             metadata (Optional[dict]): Optional updated metadata related to the document.
@@ -306,7 +336,7 @@ class VectorDatabase:
         vector = self.encoder(new_sentence).squeeze().tolist()
 
         # Locate the document first
-        document = self.find_one(collection_name, metadata=metadata, keywords=keywords)
+        document = self.find_one(collection_name, find_key, metadata=metadata)
 
         # If the document isn't found, return False
         if not document:
@@ -319,8 +349,7 @@ class VectorDatabase:
         # Create the payload dictionary directly
         payload = {
             "text": new_sentence,
-            "keywords": keywords if keywords else [],
-            "updated": datetime_to_iso8061(datetime.now())  # Add "updated" timestamp to the payload
+            "updated": datetime.now().isoformat()  # Add "updated" timestamp to the payload
         }
 
         # Merge the metadata into the payload if provided
@@ -361,57 +390,3 @@ class VectorDatabase:
             logger.info(magenta(f'Deleted collection {collection_name}'))
         else:
             logger.warning(f'Collection {collection_name} does not exist, skipping deletion...')
-
-
-    def fetch_by_id(self, collection_name: str, id: str) -> Optional[Document]:
-        """Fetches a vector by its unique id.
-
-        FIXME: This method doesn't work properly. This can't find by id.
-
-        Args:
-            collection_name (str): Name of the Qdrant collection to query.
-            id (str): The unique id of the stored entity.
-
-        Returns:
-            Document: The document's content or None if not found.
-        """
-        try:
-            # Setting up a filter to match the specific ID
-            filter_condition = Filter(
-                must=[
-                    FieldCondition(
-                        key="id",
-                        match=MatchValue(value=id)
-                    )
-                ]
-            )
-
-            results = self.client.search(
-                collection_name=collection_name,
-                query_vector=[0.0] * self.embedding_dim,  # Using a dummy vector for the query. The filter will override the similarity based on this.
-                query_filter=filter_condition,
-                limit=1,  # Since ID is unique, expecting only one result
-                with_payload=True
-            )
-
-        except ApiException as e:
-            logger.error(red(f'{e}'))
-            return None
-
-        if results:
-            r = results[0]
-            text = list(r.payload.keys())[0]
-            keywords = r.payload.get("keywords", [])
-            metadata = r.payload.get("metadata", {})
-            logger.info(cyan(f'successfully found by id:{r.id} text:{text} metadata: {metadata}'))
-            return Document(
-                id=r.id,
-                text=text,
-                keywords=keywords,
-                metadata=metadata,
-                vector=r.vector
-            )
-        else:
-            logger.warning(f'not found by id: {id} in {collection_name}')
-            return None
-
