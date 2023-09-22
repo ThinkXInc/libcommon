@@ -104,4 +104,18 @@ except Exception as e:
     print(red(e))
     assert False
 
+# Test block 6: Delete document by material_id
+try:
+    deleted = vdb.delete(collection_name=collection_name, find_key="material_id", find_value=material_id)
+    if deleted:
+        # Verify it's actually deleted by trying to find it again
+        document_after_delete = vdb.find_one(collection_name=collection_name, find_key="material_id", metadata={'material_id': material_id})
+        assert not document_after_delete, f"Document with material_id {material_id} was not actually deleted"
+    else:
+        raise ValueError(f"Failed to delete document with material_id {material_id}")
+    print(green('Test 6 passed: Delete document by material_id'))
+except Exception as e:
+    print(red(e))
+    assert False
+
 print(green('All tests passed!'))
