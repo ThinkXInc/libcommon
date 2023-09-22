@@ -29,13 +29,54 @@ def register_all_tasks_from_module(module_name, queue_instance):
     for func in functions:
         queue_instance.register_task(func)
 
-def register_celery_task(prompt, celery_task):
+def register_celery_task(celery_task, *args, **kwargs):
     """
-    Register celery task to task queue.
+    Register a celery task to the task queue without any delay.
 
+    Args:
+        celery_task (Celery): The celery task to be executed.
+        *args: Variable-length argument list for positional arguments to be passed to the celery task.
+        **kwargs: Arbitrary keyword arguments to be passed to the celery task.
+
+    Returns:
+        Celery.result.AsyncResult: The AsyncResult instance.
+        
+    Example Usages:
+        # For a task that takes a single string argument:
+        >>> register_celery_task(my_task, "Hello World")
+        
+        # For a task that takes multiple arguments:
+        >>> register_celery_task(my_task, "arg1", "arg2", my_kwarg="value")
+        
+        # For a task that takes multiple keyword arguments:
+        >>> register_celery_task(my_task, my_kwarg1="value1", my_kwarg2="value2")
     """
-    task = celery_task.apply_async((prompt,))
-    print(f'Celery task registered in queue with id: {task.id}')
+    task = celery_task.apply_async(args=args, kwargs=kwargs)
+    print(bold(f'Celery task registered in queue with id: {task.id}'))
+    return task
+
+def register_celery_task_with_delay(celery_task, delay_sec, *args, **kwargs):
+    """
+    Register a celery task to the task queue with a specified delay.
+
+    Args:
+        celery_task (Celery): The celery task to be executed.
+        delay_sec (int): The number of seconds to delay the execution of the task.
+        *args: Variable-length argument list for positional arguments to be passed to the celery task.
+        **kwargs: Arbitrary keyword arguments to be passed to the celery task.
+
+    Returns:
+        Celery.result.AsyncResult: The AsyncResult instance.
+        
+    Example Usages:
+        # For a task that needs to be delayed by 10 seconds:
+        >>> register_celery_task_with_delay(my_task, 10, "arg1", my_kwarg="value")
+        
+        # For a task that needs to be delayed and takes multiple keyword arguments:
+        >>> register_celery_task_with_delay(my_task, 5, my_kwarg1="value1", my_kwarg2="value2")
+    """
+    task = celery_task.apply_async(args=args, kwargs=kwargs, countdown=delay_sec)
+    print(bold(f'Celery task registered in queue with id: {task.id} delay: {delay_sec}'))
     return task
 
 def fetch_worker_results(
