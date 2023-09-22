@@ -87,7 +87,7 @@ class Locale:
                 data.update(json.load(f))
         return data
 
-    def get(self, key: str, lang: str, *args) -> str:
+    def get(self, key: str, lang: str, locale_args: list = None) -> str:
         """
         Retrieves a localized message from the json data based on the provided key and language.
 
@@ -116,10 +116,11 @@ class Locale:
             raise ValueError(f'No lang "{lang}" of key "{key}" found in {self.__file_paths__}')
 
         m = self.__dict__[key][lang]
-        for i, arg in enumerate(args):
-            if f'${i}' not in m:
-                raise ValueError(f'${i} not in the message:{m}')
-            m = m.replace(f'${i}', arg)
+        if locale_args:
+            for i, arg in enumerate(locale_args):
+                if f'${i}' not in m:
+                    raise ValueError(f'${i} not in the message:{m}')
+                m = m.replace(f'${i}', arg)
 
         logging.debug(f'Error message generated for key:{key} lang:{lang} as {m}')
         return m

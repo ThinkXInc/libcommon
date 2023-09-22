@@ -40,6 +40,7 @@
 import sys
 from flask import jsonify
 sys.path.append('../')
+from typing import List, Optional
 from libcommon.locale import Locale
 from libcommon.modelbase import ModelBase
 from libcommon.enumlocale import EnumLocale
@@ -171,13 +172,21 @@ class ValidationError(Exception):
             }
     """
     
-    def __init__(self, key, value, locale, locale_key, lang, *args):
+
+    def __init__(
+            self,
+            field_name,
+            value,
+            locale: Locale,
+            locale_key: str,
+            lang: str,
+            locale_args: List[str] = None):
         self.field_name = key
         self.value = value
         self.locale = locale
         self.locale_key = locale_key
         self.lang = lang
-        self.message = self.locale.get(self.locale_key, self.lang, *args)
+        self.message = self.locale.get(self.locale_key, self.lang, locale_args if locale_args else [])
         
     def __error__(self) -> dict:
         return {
@@ -233,17 +242,20 @@ class APIError(Exception):
     __http_error__ = ErrorCode.BAD_REQUEST
 
     def __init__(
-        self,
-        lang: str,
-        locale: Locale = None,
-        locale_key: str = None,
-        field_name: str = None,
-        *args):
-            self.lang = lang
-            self.locale = locale
-            self.locale_key = locale_key if locale_key else self.__default_locale_key__
-            self.__field_name__ = field_name if field_name else ''
-            self.__message__ = self.locale.get(self.locale_key, self.lang, *args)
+            self,
+            lang: str,
+            locale: Locale = None,
+            locale_key: str = None,
+            field_name: str = None,
+            locale_args: List[str] = None):
+
+        print(f'....____.........{locale_args}')
+
+        self.lang = lang
+        self.locale = locale
+        self.locale_key = locale_key if locale_key else self.__default_locale_key__
+        self.__field_name__ = field_name if field_name else ''
+        self.__message__ = self.locale.get(self.locale_key, self.lang, locale_args if locale_args else [])
        
     def __error__(self) -> dict:
         return {
@@ -325,7 +337,7 @@ class APISuccess():
         __http_success__ (SuccessCode): The HTTP success code.
 
     Methods:
-        http_reponse(): Returns a JSON representation of the success response.
+        http_response(): Returns a JSON representation of the success response.
         __str__(): Returns a string representation of the success message.
 
     Response Example:
