@@ -1,0 +1,242 @@
+import pika
+import json
+from pydantic import BaseModel
+# logger
+import sys
+sys.path.append('../../')
+from libcommon.logger import Logger
+logger = Logger('queue server')
+logger.setLevel(logger.DEBUG)
+from libcommon.color import red, yellow, cyan, blue, bold, magenta, green
+
+
+# Create a global channel variable to hold our channel object in
+channel = None
+
+
+class QueueConfig(BaseModel):
+    user: str = 'guest'  # Assuming default RabbitMQ credentials. Change if necessary.
+    password: str = 'guest'  # Assuming default RabbitMQ credentials. Change if necessary.
+    host: str = 'localhost'
+    port: int = 5672
+    blocked_connection_timeout: int = None
+    channel_max: int = 65535
+    frame_max: int = 131072
+    virtual_host: str = '/'
+    heartbeat: int = 0
+    ssl_options: dict = None  # Assuming this is a dictionary. Adjust if needed.
+    connection_attempts: int = 3
+    retry_delay: int = 2
+    socket_timeout: float = 0.25  # Float type since it's in fractions of a second
+    queue_durable: bool = True
+    queue_exclusive: bool = False
+    queue_auto_delete: bool = False
+    task_queue_name: str = 'task_queue'
+
+    def __str__(self):
+        return (
+            f"QueueConfig("
+            f"user={self.user}, "
+            f"host={self.host}, "
+            f"port={self.port}, "
+            f"blocked_connection_timeout={self.blocked_connection_timeout}, "
+            f"channel_max={self.channel_max}, "
+            f"frame_max={self.frame_max}, "
+            f"virtual_host={self.virtual_host}, "
+            f"heartbeat={self.heartbeat}, "
+            # Note: For better security, it's common practice not to display SSL options
+            f"connection_attempts={self.connection_attempts}, "
+            f"retry_delay={self.retry_delay}, "
+            f"socket_timeout={self.socket_timeout}, "
+            f"task_queue_name={self.task_queue_name}, "
+            f"queue_durable={self.queue_durable}, "
+            f"queue_exclusive={self.queue_exclusive}, "
+            f"queue_auto_delete={self.queue_auto_delete}"
+            f")"
+        )
+
+class QueueServer:
+    def __init__(self, config: QueueConfig):  # TODO: config type by pydantic
+        self.config = config
+
+        self._connection = None
+        self._channel = None
+        self._should_reconnect = False
+        self._closing = False
+        self._consuming = False
+        self._consumer_tag = None
+
+        self.registered_tasks = {}  # A dictionary to store the registered tasks
+
+    def connect(self):
+        """Establish connection to RabbitMQ."""
+        credentials = pika.PlainCredentials(self.config.user, self.config.password)
+
+        parameters = pika.ConnectionParameters(
+            host=self.config.host,
+            port=self.config.port,
+            blocked_connection_timeout=self.config.blocked_connection_timeout,
+            channel_max=self.config.channel_max,
+            frame_max=self.config.frame_max,
+            virtual_host=self.config.virtual_host,
+            heartbeat=self.config.heartbeat,
+            ssl_options=self.config.ssl_options,
+            connection_attempts=self.config.connection_attempts,
+            retry_delay=self.config.retry_delay,
+            socket_timeout=self.config.socket_timeout,
+            credentials=credentials
+            # backpressure_detection was removed in pika code base, so we won't add it.
+        )
+
+        logger.info(str(self.config))
+
+        return pika.SelectConnection(
+            parameters=parameters,
+            on_open_callback=self.on_connected,
+            on_open_error_callback=self.on_connection_open_error,
+            on_close_callback=self.on_connection_closed
+        )
+
+    # Handlers
+
+    def on_connected(self, _unused_connection):
+        """Called when we are fully connected to RabbitMQ"""
+        self.open_channel()
+
+    def on_channel_open(self, channel):
+        """Called when our channel has opened"""
+        logger.info(green(f'Channel {channel.channel_number} opened on {self.config.host}:{self.config.port}'))
+        self._channel = channel
+        self._channel.queue_declare(
+            queue=self.config.task_queue_name,
+            durable=self.config.queue_durable,
+            exclusive=self.config.queue_exclusive,
+            auto_delete=self.config.queue_auto_delete,
+            callback=self.on_queue_declared
+        )
+
+    def on_connection_open_error(self, _unused_connection, err):
+        logger.error('Connection open failed: %s', err)
+        self.reconnect()
+
+    def on_connection_closed(self, _unused_connection, reason):
+        if self._closing:
+            logger.info(f'Connection stop.')
+            self._connection.ioloop.stop()
+        else:
+            logger.warning(f'Connection closed, reconnect necessary: {reason}')
+            self.reconnect()
+
+    def on_queue_declared(self, frame):
+        """Called when RabbitMQ has told us our Queue has been declared, frame is the response from RabbitMQ"""
+        logger.info(bold(f'Queue {self.config.task_queue_name} declared successfully with message count: {frame.method.message_count}'))
+        self._channel.basic_consume(self.config.task_queue_name, on_message_callback=self.handle_delivery)
+
+    # Methods
+
+    def open_channel(self):
+        logger.info('Creating a new channel..')
+        logger.info(f'Connected to RabbitMQ on {self.config.host}:{self.config.port} with virtual host {self.config.virtual_host}')
+        self._connection.channel(on_open_callback=self.on_channel_open)
+
+    def reconnect(self):
+        """Attempts to reconnect to the RabbitMQ server."""
+        
+        # Detailed logging information
+        logger.info(f"Attempting to reconnect to RabbitMQ server at {self.config.host}:{self.config.port}.")
+        
+        # Setting the reconnect flag
+        self._should_reconnect = True
+        self.stop()
+
+    def register_task(self, func):
+        """Method to register a task."""
+        self.registered_tasks[func.__name__] = func
+        logger.info(f"Task registered: {func.__name__}")
+
+    def handle_delivery(self, channel, method, header, body):
+        """Called when we receive a message from RabbitMQ"""
+        logger.info(cyan(f'Received message: {body}, delivery tag: {method.delivery_tag}, exchange: {method.exchange}'))
+        
+        # Execute all registered tasks with the body
+        for task_name, task_func in self.registered_tasks.items():
+            try:
+                task_func(body)
+                logger.info(f"Executed task: {task_name}")
+            except Exception as e:
+                logger.error(f"Error executing task {task_name}: {e}")
+        
+        channel.basic_ack(delivery_tag=method.delivery_tag)
+
+    # Run/Stop
+
+    def run(self):
+        logger.info('QueueServer Start running..')
+        self._connection = self.connect()
+        self._connection.ioloop.start()
+
+    def stop(self):
+        logger.info('Stopping')
+        if self._channel:
+            self._channel.close()
+            self._channel = None
+
+        if self._connection:
+            self._connection.close()
+            self._connection = None
+
+        logger.info('Stopped')
+
+
+class ReconnectingQueueServer:
+
+    def __init__(self, config):
+        self._reconnect_delay = 0
+        self.config = config
+        self._queue_server = QueueServer(config)
+
+    def run(self):
+        while True:
+            try:
+                self._queue_server.run()
+            except KeyboardInterrupt:
+                self._queue_server.stop()
+                break
+            self._maybe_reconnect()
+
+    def _maybe_reconnect(self):
+        if self._queue_server._should_reconnect:
+            self._queue_server.stop()
+            reconnect_delay = self._get_reconnect_delay()
+            logger.info(f'Reconnecting after {reconnect_delay} seconds')
+            time.sleep(reconnect_delay)
+            self._queue_server = QueueServer(self.config)
+
+    def _get_reconnect_delay(self):
+        self._reconnect_delay += 1
+        if self._reconnect_delay > 30:
+            self._reconnect_delay = 30
+        return self._reconnect_delay
+
+    def register_task(self, func):
+        self._queue_server.register_task(func)
+    
+
+if __name__ == '__main__':
+    # Usage example
+    server = ReconnectingQueueServer(QueueConfig())
+    from sample_tasks import echo
+    server.register_task(echo)
+    server.run()
+
+#try:
+#    # Loop so we can communicate with RabbitMQ
+#    logger.info(f'Starting IO loop for RabbitMQ communication on {Config.RABBITMQ_HOST}:{Config.RABBITMQ_PORT}')
+#    connection.ioloop.start()
+#except KeyboardInterrupt:
+#    # Gracefully close the connection
+#    logger.info(f'Interrupt received. Initiating graceful shutdown of connection to {Config.RABBITMQ_HOST}:{Config.RABBITMQ_PORT}')
+#    connection.close()
+#    # Loop until we're fully closed.
+#    # The on_close callback is required to stop the io loop
+#    connection.ioloop.start()
