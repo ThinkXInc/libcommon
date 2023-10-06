@@ -1,13 +1,14 @@
 import pika
 import json
-from queue_config import QueueConfig
 # logger
 import sys
 sys.path.append('../../')
 from libcommon.logger import Logger
 logger = Logger('queue server')
 logger.setLevel(logger.DEBUG)
-from libcommon.color import red, yellow, cyan, blue, bold, magenta, green
+from libcommon.color import red, yellow, cyan, blue, bold, magenta, green, orange
+# queue config
+from libcommon.queue_server.queue_config import QueueConfig
 
 # Create a global channel variable to hold our channel object in
 channel = None
@@ -96,23 +97,23 @@ class QueueServer:
         logger.info(f'Connected to RabbitMQ on {self.config.host}:{self.config.port} with virtual host {self.config.virtual_host}')
         self._connection.channel(on_open_callback=self.on_channel_open)
 
-    def register_task(self, func):
-        """Method to register a task."""
-        self.registered_tasks[func.__name__] = func
-        logger.info(f"Task registered: {func.__name__}")
+    def register_task(self, func, *args, **kwargs):
+        """Method to register a task along with its arguments."""
+        self.registered_tasks[func.__name__] = (func, args, kwargs)
+        logger.info(f"Task registered: {func.__name__} with args {args} and kwargs {kwargs}")
 
     def handle_delivery(self, channel, method, header, request_body):
         """Called when we receive a message from RabbitMQ"""
-        logger.info(cyan(f'Received message: {request_body}, delivery tag: {method.delivery_tag}, exchange: {method.exchange}'))
-        
-        # Execute all registered tasks with the request_body
-        for task_name, task_func in self.registered_tasks.items():
+        logger.info(magenta(f'Received message: {request_body}, delivery tag: {method.delivery_tag}, exchange: "{method.exchange}"'))
+
+        # Execute all registered tasks with the request_body and their registered arguments
+        for task_name, (task_func, args, kwargs) in self.registered_tasks.items():
             try:
-                task_func(request_body)
-                logger.info(f"Executed task: {task_name}")
+                task_func(str(request_body), *args, **kwargs)
+                logger.info(green(f"Successfully executed task: {task_name}"))
             except Exception as e:
                 logger.error(f"Error executing task {task_name}: {e}")
-        
+
         channel.basic_ack(delivery_tag=method.delivery_tag)
 
     # Run/Stop
@@ -174,9 +175,9 @@ class ReconnectingQueueServer:
             self._reconnect_delay = 30
         return self._reconnect_delay
 
-    def register_task(self, func):
-        self._queue_server.register_task(func)
-    
+    def register_task(self, func, *args, **kwargs):
+        self._queue_server.register_task(func, *args, **kwargs)
+
 
 if __name__ == '__main__':
     # Usage example

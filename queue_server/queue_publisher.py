@@ -2,7 +2,6 @@ import pika
 import json
 import time
 import threading
-from queue_config import QueueConfig
 # logger
 import sys
 sys.path.append('../../')
@@ -10,6 +9,8 @@ from libcommon.logger import Logger
 logger = Logger('queue server')
 logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta, green
+# queue config
+from libcommon.queue_server.queue_config import QueueConfig
 
 DELIVERY_PERSISTENT = 2
 
