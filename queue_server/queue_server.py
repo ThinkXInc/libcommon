@@ -1,6 +1,6 @@
 import pika
 import json
-from pydantic import BaseModel
+from queue_config import QueueConfig
 # logger
 import sys
 sys.path.append('../../')
@@ -9,51 +9,8 @@ logger = Logger('queue server')
 logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta, green
 
-
 # Create a global channel variable to hold our channel object in
 channel = None
-
-
-class QueueConfig(BaseModel):
-    user: str = 'guest'  # Assuming default RabbitMQ credentials. Change if necessary.
-    password: str = 'guest'  # Assuming default RabbitMQ credentials. Change if necessary.
-    host: str = 'localhost'
-    port: int = 5672
-    blocked_connection_timeout: int = None
-    channel_max: int = 65535
-    frame_max: int = 131072
-    virtual_host: str = '/'
-    heartbeat: int = 0
-    ssl_options: dict = None  # Assuming this is a dictionary. Adjust if needed.
-    connection_attempts: int = 3
-    retry_delay: int = 2
-    socket_timeout: float = 0.25  # Float type since it's in fractions of a second
-    queue_durable: bool = True
-    queue_exclusive: bool = False
-    queue_auto_delete: bool = False
-    task_queue_name: str = 'task_queue'
-
-    def __str__(self):
-        return (
-            f"QueueConfig("
-            f"user={self.user}, "
-            f"host={self.host}, "
-            f"port={self.port}, "
-            f"blocked_connection_timeout={self.blocked_connection_timeout}, "
-            f"channel_max={self.channel_max}, "
-            f"frame_max={self.frame_max}, "
-            f"virtual_host={self.virtual_host}, "
-            f"heartbeat={self.heartbeat}, "
-            # Note: For better security, it's common practice not to display SSL options
-            f"connection_attempts={self.connection_attempts}, "
-            f"retry_delay={self.retry_delay}, "
-            f"socket_timeout={self.socket_timeout}, "
-            f"task_queue_name={self.task_queue_name}, "
-            f"queue_durable={self.queue_durable}, "
-            f"queue_exclusive={self.queue_exclusive}, "
-            f"queue_auto_delete={self.queue_auto_delete}"
-            f")"
-        )
 
 class QueueServer:
     def __init__(self, config: QueueConfig):  # TODO: config type by pydantic
@@ -139,29 +96,19 @@ class QueueServer:
         logger.info(f'Connected to RabbitMQ on {self.config.host}:{self.config.port} with virtual host {self.config.virtual_host}')
         self._connection.channel(on_open_callback=self.on_channel_open)
 
-    def reconnect(self):
-        """Attempts to reconnect to the RabbitMQ server."""
-        
-        # Detailed logging information
-        logger.info(f"Attempting to reconnect to RabbitMQ server at {self.config.host}:{self.config.port}.")
-        
-        # Setting the reconnect flag
-        self._should_reconnect = True
-        self.stop()
-
     def register_task(self, func):
         """Method to register a task."""
         self.registered_tasks[func.__name__] = func
         logger.info(f"Task registered: {func.__name__}")
 
-    def handle_delivery(self, channel, method, header, body):
+    def handle_delivery(self, channel, method, header, request_body):
         """Called when we receive a message from RabbitMQ"""
-        logger.info(cyan(f'Received message: {body}, delivery tag: {method.delivery_tag}, exchange: {method.exchange}'))
+        logger.info(cyan(f'Received message: {request_body}, delivery tag: {method.delivery_tag}, exchange: {method.exchange}'))
         
-        # Execute all registered tasks with the body
+        # Execute all registered tasks with the request_body
         for task_name, task_func in self.registered_tasks.items():
             try:
-                task_func(body)
+                task_func(request_body)
                 logger.info(f"Executed task: {task_name}")
             except Exception as e:
                 logger.error(f"Error executing task {task_name}: {e}")
@@ -187,6 +134,15 @@ class QueueServer:
 
         logger.info('Stopped')
 
+    def reconnect(self):
+        """Attempts to reconnect to the RabbitMQ server."""
+        
+        # Detailed logging information
+        logger.info(f"Attempting to reconnect to RabbitMQ server at {self.config.host}:{self.config.port}.")
+        
+        # Setting the reconnect flag
+        self._should_reconnect = True
+        self.stop()
 
 class ReconnectingQueueServer:
 
@@ -228,15 +184,3 @@ if __name__ == '__main__':
     from sample_tasks import echo
     server.register_task(echo)
     server.run()
-
-#try:
-#    # Loop so we can communicate with RabbitMQ
-#    logger.info(f'Starting IO loop for RabbitMQ communication on {Config.RABBITMQ_HOST}:{Config.RABBITMQ_PORT}')
-#    connection.ioloop.start()
-#except KeyboardInterrupt:
-#    # Gracefully close the connection
-#    logger.info(f'Interrupt received. Initiating graceful shutdown of connection to {Config.RABBITMQ_HOST}:{Config.RABBITMQ_PORT}')
-#    connection.close()
-#    # Loop until we're fully closed.
-#    # The on_close callback is required to stop the io loop
-#    connection.ioloop.start()
