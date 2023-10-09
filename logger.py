@@ -63,9 +63,15 @@ class Logger:
     DEFAULT_FORMAT_WARNING = '[WARNING] [%(name)s] %(message)s'
     DEFAULT_FORMAT_ERROR = '[ERROR] [%(asctime)s] [%(name)s] %(message)s'
 
-    def __init__(self, name: str):
-        self.logger = logging.getLogger(name)
+    def __init__(self, name: str = None):
+        if name is None:
+            # Get the frame of the caller
+            frame = inspect.stack()[1]
+            module = inspect.getmodule(frame[0])
+            name = module.__name__ if module else 'root'
         
+        self.logger = logging.getLogger(name)
+
         from config import Config
         # Use formats from Config if they exist, otherwise fall back to default formats
         debug_format = logging.Formatter(getattr(Config, 'LOGGER_FORMAT_DEBUG', self.DEFAULT_FORMAT_DEBUG))
