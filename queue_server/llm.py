@@ -1,5 +1,6 @@
 import time
 import threading
+from datetime import datetime, timedelta
 from pydantic import BaseModel
 from typing import List, Optional, Union
 from vllm.engine.llm_engine import LLMEngine
@@ -50,20 +51,37 @@ class ResultStore:
     >>> print(store.get("1"))
     None
     """
-    def __init__(self):
+    def __init__(self, expire_in_sec: int = 0):
         self.store = {}
+        self.expiration_times = {}  # This dictionary will hold expiration times
+        self.expire_in_sec = expire_in_sec
         self.lock = threading.Lock()
+
+    def _remove_expired_entries(self):
+        """Remove entries that have expired."""
+        current_time = datetime.now()
+        expired_keys = [k for k, v in self.expiration_times.items() if v <= current_time]
+
+        for key in expired_keys:
+            logger.debug(f'{key} in ResultStore is expired. remove it.')
+            self.store.pop(key, None)
+            self.expiration_times.pop(key, None)
 
     def add(self, request_id: str, result: InferenceOutput) -> None:
         with self.lock:
+            self._remove_expired_entries()
             self.store[request_id] = result
+            # Set the expiration time for this request_id
+            self.expiration_times[request_id] = datetime.now() + timedelta(seconds=self.expire_in_sec)
 
     def get(self, request_id: str) -> Optional[InferenceOutput]:
         with self.lock:
+            self._remove_expired_entries()
             return self.store.get(request_id)
 
     def pop(self, request_id: str) -> Optional[InferenceOutput]:
         with self.lock:
+            self._remove_expired_entries()
             result = self.store.get(request_id)
             if result:
                 del self.store[request_id]
@@ -71,12 +89,11 @@ class ResultStore:
 
     def is_finished(self, request_id: str) -> Union[None, bool, str]:
         with self.lock:
+            self._remove_expired_entries()
             result = self.store.get(request_id)
             if not result:
                 return None
             return result.finish_reason if result.finished else False
-
-results_store = ResultStore()
 
 # Initialize LLMEngine
 def llm_engine(engine_args: AsyncEngineArgs) -> LLMEngine:
@@ -98,7 +115,7 @@ def add_request(prompt, llm_engine: LLMEngine, sampling_params: SamplingParams) 
     return request_id
 
 # Consumer process - Step inference to get ouputs
-def inference_step(llm_engine: LLMEngine) -> List[InferenceOutput]:
+def inference_step(llm_engine: LLMEngine, results_store: ResultStore) -> List[InferenceOutput]:
     """Step inference"""
     results = llm_engine.step()
 
@@ -143,23 +160,14 @@ def inference_step(llm_engine: LLMEngine) -> List[InferenceOutput]:
     # Now, log information
     if len(outputs) > 0:
         logger.info(magenta(f"\n{len(outputs)} outputs" + "-"*50))
-    
         logger.info("[request_id]")
-        for rid in request_ids:
-            logger.info(f"request_id: {rid}")
-
+        for rid in request_ids: logger.info(f"request_id: {rid}")
         logger.info("[prompt]")
-        for p in prompts:
-            logger.info(yellow(f"prompt: {p}"))
-
+        for p in prompts: logger.info(yellow(f"prompt: {p}"))
         logger.info("[text]")
-        for t in texts:
-            logger.info(cyan(f"text: {t}"))
-
+        for t in texts: logger.info(cyan(f"text: {t}"))
         logger.info("[token_ids]")
-        for tids in token_ids_list:
-            logger.info(f"token_ids: {tids}")
-
+        for tids in token_ids_list: logger.info(f"token_ids: {tids}")
         logger.info("[finished]")
         for f, r in zip(finished_list, reason_list):
             if r:

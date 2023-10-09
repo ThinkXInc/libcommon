@@ -1,12 +1,13 @@
 # llm_consumer.py
 import threading
 import time
+from typing import Optional, Union
 from vllm.engine.llm_engine import LLMEngine
 
 import sys
 sys.path.append('../../')
 # llm
-from libcommon.queue_server.llm import inference_step, ResultStore
+from libcommon.queue_server.llm import inference_step, InferenceOutput, ResultStore
 # logger
 from libcommon.logger import Logger
 logger = Logger()
@@ -14,9 +15,9 @@ logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta, orange, green
 
 class LLMConsumer:
-    def __init__(self, llm_engine: LLMEngine):
+    def __init__(self, llm_engine: LLMEngine, expire_in_sec: int = 0):
         self.llm_engine = llm_engine
-        self.results_store = ResultStore()
+        self.results_store = ResultStore(expire_in_sec=expire_in_sec)
 
     def run(self) -> None:
         """
@@ -26,7 +27,7 @@ class LLMConsumer:
             logger.info(green('Consumer process started running in a thread.'))
             while True:
                 try:
-                    inference_step(self.llm_engine)
+                    inference_step(self.llm_engine, self.results_store)
                     if delay: time.sleep(delay)  # You can adjust this sleep time as necessary
                 except Exception as e:
                     logger.error(f"Error occurred in the consumer thread: {e}")
