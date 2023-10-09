@@ -4,7 +4,7 @@ import json
 import sys
 sys.path.append('../../')
 from libcommon.logger import Logger
-logger = Logger('queue server')
+logger = Logger()
 logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta, green, orange
 # queue config

@@ -9,7 +9,7 @@ sys.path.append('../../')
 from libcommon.queue_server.llm import inference_step, ResultStore
 # logger
 from libcommon.logger import Logger
-logger = Logger('llm')
+logger = Logger()
 logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta, orange, green
 

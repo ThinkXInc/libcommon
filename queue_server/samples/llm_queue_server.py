@@ -2,7 +2,7 @@ import sys
 # logger
 sys.path.append('../../../')
 from libcommon.logger import Logger
-logger = Logger('llm')
+logger = Logger()
 logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta
 # queue server
@@ -21,5 +21,6 @@ consumer_server.run()
 
 # Start runnning queue server (in mainthread)
 queue_server = ReconnectingQueueServer(QueueConfig())
+sampling_params.max_tokens = 24
 queue_server.register_task(add_request, engine, sampling_params)
 queue_server.run()

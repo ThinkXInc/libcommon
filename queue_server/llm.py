@@ -11,7 +11,7 @@ from vllm.utils import random_uuid
 import sys
 sys.path.append('../../')
 from libcommon.logger import Logger
-logger = Logger('llm')
+logger = Logger()
 logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta, orange, green
 
@@ -104,7 +104,14 @@ def inference_step(llm_engine: LLMEngine) -> List[InferenceOutput]:
 
     outputs = []
 
-    for i, result in enumerate(results):
+    request_ids = []
+    prompts = []
+    texts = []
+    token_ids_list = []
+    finished_list = []
+    reason_list = []
+
+    for result in results:
         request_id = result.request_id
         prompt = result.prompt
         prompt_token_ids = result.prompt_token_ids
@@ -113,13 +120,13 @@ def inference_step(llm_engine: LLMEngine) -> List[InferenceOutput]:
         finished = result.finished
         finish_reason = result.outputs[0].finish_reason
 
-        # Log information
-        logger.info(f'[{i}]')
-        logger.info(yellow(f"request_id: {request_id}"))
-        logger.info(cyan(f"prompt: {prompt}"))
-        logger.info(bold(f"text: {generated_text}"))
-        logger.info(magenta(f"token_ids: {generate_token_ids}"))
-        logger.info(f"finished: {finished} reason: {finish_reason}")
+        # Append data to lists
+        request_ids.append(request_id)
+        prompts.append(prompt)
+        texts.append(generated_text)
+        token_ids_list.append(generate_token_ids)
+        finished_list.append(finished)
+        reason_list.append(finish_reason)
 
         # Append to outputs
         output = InferenceOutput(
@@ -130,32 +137,38 @@ def inference_step(llm_engine: LLMEngine) -> List[InferenceOutput]:
             finished=finished,
             finish_reason=finish_reason
         )
-
         outputs.append(output)
         results_store.add(request_id, output)
 
+    # Now, log information
+    if len(outputs) > 0:
+        logger.info(magenta(f"\n{len(outputs)} outputs" + "-"*50))
+    
+        logger.info("[request_id]")
+        for rid in request_ids:
+            logger.info(f"request_id: {rid}")
+
+        logger.info("[prompt]")
+        for p in prompts:
+            logger.info(yellow(f"prompt: {p}"))
+
+        logger.info("[text]")
+        for t in texts:
+            logger.info(cyan(f"text: {t}"))
+
+        logger.info("[token_ids]")
+        for tids in token_ids_list:
+            logger.info(f"token_ids: {tids}")
+
+        logger.info("[finished]")
+        for f, r in zip(finished_list, reason_list):
+            if r:
+                logger.info(green(f"finished: {f} reason: {r}"))
+            else:
+                logger.info(f"finished: {f} reason: {r}")
+
     return outputs
 
-def run_consumer_server_in_thread(llm_engine: LLMEngine) -> ResultStore:
-    """
-    Run the inference_step in a sub-thread and return immediately.
-    """
-    def _inference_step(delay=0):
-        logger.info(green('Consumer process started running in a thread.'))
-        while True:
-            try:
-                inference_step(llm_engine)
-                if delay: time.sleep(delay)  # You can adjust this sleep time as necessary
-            except Exception as e:
-                logger.error(f"Error occurred in the consumer thread: {e}")
-                break
-    
-    thread = threading.Thread(target=_inference_step)
-    thread.daemon = True  # Ensures the thread exits when the main program does
-    thread.start()
-    
-    logger.info(yellow("Started the consumer process in a separate thread."))
-    return results_store
 
 # Default AsyncEngineArgs and SamplingParams
 

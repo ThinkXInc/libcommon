@@ -3,7 +3,7 @@ import sys
 # logger
 sys.path.append('../../../')
 from libcommon.logger import Logger
-logger = Logger('llm')
+logger = Logger()
 logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta
 # publisher
@@ -22,12 +22,13 @@ try:
     # Initialize Publisher
     publisher = QueuePublisher(queue_config, connection_manager)
 
-    n = 5
+    n = 30
+    interval_sec = 0
     for i in range(n):
-        time.sleep(1)
+        time.sleep(interval_sec)
         # Publish message
         logger.info(yellow(f'[{i}/{n-1}]'))
-        publisher.publish(str(f'{i}/{n-1}: 123456'))
+        publisher.publish(str(f'{1*(i+1)} {2*(i+1)} {3*(i+1)} {4*(i+1)}'))
 
 finally:
     # Ensure connection is always closed gracefully, even if there's an error
