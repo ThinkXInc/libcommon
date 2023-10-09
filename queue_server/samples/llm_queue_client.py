@@ -28,7 +28,7 @@ try:
         time.sleep(interval_sec)
         # Publish message
         logger.info(yellow(f'[{i}/{n-1}]'))
-        publisher.publish(str(f'{1*(i+1)} {2*(i+1)} {3*(i+1)} {4*(i+1)}'))
+        request_id = publisher.publish(str(f'{1*(i+1)} {2*(i+1)} {3*(i+1)} {4*(i+1)}'))
 
 finally:
     # Ensure connection is always closed gracefully, even if there's an error

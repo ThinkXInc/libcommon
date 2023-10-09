@@ -102,14 +102,18 @@ class QueueServer:
         self.registered_tasks[func.__name__] = (func, args, kwargs)
         logger.info(f"Task registered: {func.__name__} with args {args} and kwargs {kwargs}")
 
-    def handle_delivery(self, channel, method, header, request_body):
+    def handle_delivery(self, channel, method, header, request_body) -> str:
         """Called when we receive a message from RabbitMQ"""
         logger.info(magenta(f'Received message: {request_body}, delivery tag: {method.delivery_tag}, exchange: "{method.exchange}"'))
+
+        data = json.loads(request_body)
+        request_id = data["request_id"]
+        message = data["message"]
 
         # Execute all registered tasks with the request_body and their registered arguments
         for task_name, (task_func, args, kwargs) in self.registered_tasks.items():
             try:
-                task_func(str(request_body), *args, **kwargs)
+                task_func(request_id, message, *args, **kwargs)
                 logger.info(green(f"Successfully executed task: {task_name}"))
             except Exception as e:
                 logger.error(f"Error executing task {task_name}: {e}")

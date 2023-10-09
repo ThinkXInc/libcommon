@@ -16,7 +16,7 @@ from libcommon.queue_server.llm_consumer import LLMConsumer
 engine = llm_engine(engine_args)
 
 # Start running consumer server (in subthread)
-consumer_server = LLMConsumer(engine, expire_in_sec=0.1)
+consumer_server = LLMConsumer(engine, expire_in_sec=60*3)
 consumer_server.run()
 
 # Start runnning queue server (in mainthread)

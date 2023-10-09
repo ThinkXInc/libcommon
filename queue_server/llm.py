@@ -7,7 +7,6 @@ from vllm.engine.llm_engine import LLMEngine
 from vllm.engine.async_llm_engine import AsyncLLMEngine
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.sampling_params import SamplingParams
-from vllm.utils import random_uuid
 
 import sys
 sys.path.append('../../')
@@ -101,11 +100,15 @@ def llm_engine(engine_args: AsyncEngineArgs) -> LLMEngine:
     llm_engine = LLMEngine.from_engine_args(engine_args)
     return llm_engine
 
+# Generate task request_id
+def random_uuid() -> str:
+    return str(uuid.uuid4().hex)
+
 # Publisher process - Add inference request to LLMEngine
-def add_request(prompt, llm_engine: LLMEngine, sampling_params: SamplingParams) -> str:
+def add_request(request_id: str, prompt, llm_engine: LLMEngine, sampling_params: SamplingParams) -> str:
     """Add inference request to LLMEngine"""
     print('add request')
-    request_id = random_uuid()
+
     request_dict = {
         "prompt": prompt,
         "request_id": request_id

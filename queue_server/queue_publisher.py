@@ -2,6 +2,7 @@ import pika
 import json
 import time
 import threading
+import uuid
 # logger
 import sys
 sys.path.append('../../')
@@ -149,7 +150,7 @@ class QueuePublisher:
         self._channel = self._connection_manager.channel
         logger.info(f'Publisher initialized on {self.config.host}:{self.config.host} queue:{self.config.task_queue_name}.')
 
-    def publish(self, message: str, delivery_mode=DELIVERY_PERSISTENT, mandatory=True):
+    def publish(self, message: str, delivery_mode=DELIVERY_PERSISTENT, mandatory=True) -> str:
         # Ensure thread safety if this is used in multi-threaded environments
 
         if not self._connection_manager.is_connected:
@@ -159,10 +160,12 @@ class QueuePublisher:
             raise Exception("Channel not opened. Ensure you're connected first.")
         
         try:
+            request_id = self.random_id()
+            message_body = json.dumps({"request_id": request_id, "message": message})
             self._channel.basic_publish(
                 exchange='',
                 routing_key=self.config.task_queue_name,
-                body=message,
+                body=message_body,
                 properties=pika.BasicProperties(delivery_mode=delivery_mode),  # 2: make message persistent
                 mandatory=mandatory)
         except Exception as e:
@@ -171,6 +174,11 @@ class QueuePublisher:
             raise e
 
         logger.info(yellow(f'sent message: {message}'))
+        return request_id
+
+    def random_id(self) -> str:
+        return str(uuid.uuid4().hex)
+
 
 
 if __name__ == '__main__':
