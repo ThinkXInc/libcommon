@@ -18,6 +18,7 @@ class QueueConfig(BaseModel):
     queue_exclusive: bool = False
     queue_auto_delete: bool = False
     task_queue_name: str = 'task_queue'
+    status_queue_name: str = 'status_queue'
 
     def __str__(self):
         return (
@@ -35,6 +36,7 @@ class QueueConfig(BaseModel):
             f"retry_delay={self.retry_delay}, "
             f"socket_timeout={self.socket_timeout}, "
             f"task_queue_name={self.task_queue_name}, "
+            f"status_queue_name={self.status_queue_name}, "
             f"queue_durable={self.queue_durable}, "
             f"queue_exclusive={self.queue_exclusive}, "
             f"queue_auto_delete={self.queue_auto_delete}"

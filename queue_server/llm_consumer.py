@@ -27,7 +27,7 @@ class LLMConsumer:
             logger.info(green('Consumer process started running in a thread.'))
             while True:
                 try:
-                    inference_step(self.llm_engine, self.results_store)
+                    outputs = inference_step(self.llm_engine, self.results_store)
                     if delay: time.sleep(delay)  # You can adjust this sleep time as necessary
                 except Exception as e:
                     logger.error(f"Error occurred in the consumer thread: {e}")

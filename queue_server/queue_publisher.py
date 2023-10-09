@@ -116,6 +116,13 @@ class QueueConnectionManager:
             auto_delete=self.config.queue_auto_delete,
             callback=self.on_queue_declared
         )
+        # Additional status queue declaration
+        self._channel.queue_declare(
+            queue=self.config.status_queue_name,
+            durable=self.config.queue_durable,
+            exclusive=self.config.queue_exclusive,
+            auto_delete=self.config.queue_auto_delete
+        )
 
     def on_connection_closed(self, _unused_connection, reason):
         if self._closing:
@@ -175,6 +182,20 @@ class QueuePublisher:
 
         logger.info(yellow(f'sent message: {message}'))
         return request_id
+
+    def get_status(self, request_id: str) -> str:
+        if not self._connection_manager.is_connected:
+            raise Exception("Connection not open. Ensure you're connected first.")
+        if not self._channel:
+            raise Exception("Channel not opened. Ensure you're connected first.")
+        
+        # Get the status from status_queue
+        method_frame, header_frame, body = self._channel.basic_get(self.config.status_queue_name)
+        if method_frame:
+            data = json.loads(body)
+            if data["request_id"] == request_id:
+                return data["status"]
+        return "Not found"
 
     def random_id(self) -> str:
         return str(uuid.uuid4().hex)

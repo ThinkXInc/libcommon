@@ -120,7 +120,7 @@ def add_request(request_id: str, prompt, llm_engine: LLMEngine, sampling_params:
 # Consumer process - Step inference to get ouputs
 def inference_step(llm_engine: LLMEngine, results_store: ResultStore) -> List[InferenceOutput]:
     """Step inference"""
-    results = llm_engine.step()
+    results = llm_engine.step()  # if no results, [] is out
 
     outputs = []
 

@@ -1,5 +1,6 @@
 import pika
 import json
+from enum import Enum
 # logger
 import sys
 sys.path.append('../../')
@@ -12,6 +13,11 @@ from libcommon.queue_server.queue_config import QueueConfig
 
 # Create a global channel variable to hold our channel object in
 channel = None
+
+class Status(str, Enum):
+    done = "done"
+    progress = "progress"
+    failed = "failed"
 
 class QueueServer:
     def __init__(self, config: QueueConfig):  # TODO: config type by pydantic
@@ -72,6 +78,13 @@ class QueueServer:
             auto_delete=self.config.queue_auto_delete,
             callback=self.on_queue_declared
         )
+        # Additional status queue declaration
+        self._channel.queue_declare(
+            queue=self.config.status_queue_name,
+            durable=self.config.queue_durable,
+            exclusive=self.config.queue_exclusive,
+            auto_delete=self.config.queue_auto_delete
+        )
 
     def on_connection_open_error(self, _unused_connection, err):
         logger.error('Connection open failed: %s', err)
@@ -116,9 +129,27 @@ class QueueServer:
                 task_func(request_id, message, *args, **kwargs)
                 logger.info(green(f"Successfully executed task: {task_name}"))
             except Exception as e:
-                logger.error(f"Error executing task {task_name}: {e}")
+                logger.error(f"Error executing task {task_name}[{request_id}]: {e}")
+                update_status_queue(request_id, Status.failed)
+
+            # Update the status queue
+            self.update_status_queue(request_id, Status.progress)
 
         channel.basic_ack(delivery_tag=method.delivery_tag)
+
+    def update_status_queue(self, request_id: str, status: Status):
+        try:
+            status_body = json.dumps({"request_id": request_id, "status": status.value})
+            # Note: You need a reference to the channel. You can make the channel an instance variable in LLMConsumer
+            self.channel.basic_publish(
+                exchange='',
+                routing_key=self.config.status_queue_name,
+                body=status_body
+            )
+            logger.info(green(f"Updated status to {status} for request {request_id}"))
+        except Exception as e:
+            logger.error(f"Error updating status for request {request_id}: {e}")
+
 
     # Run/Stop
 
