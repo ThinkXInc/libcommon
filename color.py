@@ -3,6 +3,7 @@ class color:
     red = '\033[31m'
     green = '\033[32m'
     yellow = '\033[33m'
+    orange = '\033[93m'
     blue = '\033[34m'
     magenta = '\033[35m'
     cyan = '\033[36m'
@@ -30,6 +31,9 @@ def green(string):
 
 def yellow(string):
     return f"{color.yellow}{string}{color.end}"
+
+def orange(string):
+    return f"{color.orange}{string}{color.end}"
 
 def blue(string):
     return f"{color.blue}{string}{color.end}"
