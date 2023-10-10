@@ -11,7 +11,7 @@ sys.path.append('../../')
 from libcommon.logger import Logger
 logger = Logger('queue server')
 logger.setLevel(logger.DEBUG)
-from libcommon.color import red, yellow, cyan, blue, bold, magenta, green
+from libcommon.color import red, yellow, cyan, blue, bold, magenta, green, light_green
 # queue config
 from libcommon.queue_server.queue_config import QueueConfig
 # queue server
@@ -225,6 +225,40 @@ class QueuePublisher:
                 return {"error": "Result not found"}
         except Exception as e:
             logger.error(f"Error fetching result data from Redis for request {request_id}: {e}")
+            raise
+
+    def delete_status(self, request_id: str) -> bool:
+        """Delete status from Redis."""
+        logger.debug(f'trying to delete status from Redis by request_id: {request_id}')
+
+        try:
+            # Delete status from Redis
+            result = self.redis.delete(f"status:{request_id}")
+            if result:
+                logger.info(light_green(f'status for {request_id} deleted from Redis'))
+                return True
+            else:
+                logger.warning(yellow(f'status for {request_id} not found in Redis'))
+                return False
+        except Exception as e:
+            logger.error(red(f"Error deleting status from Redis for request {request_id}: {e}"))
+            raise
+
+    def delete_result(self, request_id: str) -> bool:
+        """Delete result data from Redis."""
+        logger.debug(f'trying to delete result from Redis by request_id: {request_id}')
+
+        try:
+            # Delete result from Redis
+            result = self.redis.delete(f"result:{request_id}")
+            if result:
+                logger.info(light_green(f'result for {request_id} deleted from Redis'))
+                return True
+            else:
+                logger.warning(yellow(f'result for {request_id} not found in Redis'))
+                return False
+        except Exception as e:
+            logger.error(red(f"Error deleting result data from Redis for request {request_id}: {e}"))
             raise
 
     def random_id(self) -> str:

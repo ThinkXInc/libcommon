@@ -14,7 +14,7 @@ from libcommon.queue_server.llm_consumer import LLMConsumer, QueueConfig
 engine = llm_engine(engine_args)
 
 # Start running consumer server (in subthread)
-consumer_server = LLMConsumer(engine, QueueConfig(), expire_in_sec=60*3)
+consumer_server = LLMConsumer(engine, QueueConfig())
 sampling_params.max_tokens = 24  # for test
 consumer_server.register_task(add_request, engine, sampling_params)
 consumer_server.run()

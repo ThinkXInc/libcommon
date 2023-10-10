@@ -41,8 +41,16 @@ try:
             status = publisher.get_status(request_id)
             if status == Status.finished.value:
                 logger.info(green(f"Task {request_id} finished."))
+
+                # get result
                 result = publisher.get_result(request_id)
                 logger.info(cyan(f"Result for Task {request_id}: {result}"))
+
+                # delete status and result
+                publisher.delete_result(request_id)
+                publisher.delete_status(request_id)
+
+                # remove from id list
                 request_ids.remove(request_id)
                 break
             elif status == Status.progress.value:

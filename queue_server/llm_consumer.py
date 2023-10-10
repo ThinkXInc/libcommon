@@ -22,9 +22,9 @@ class ResultData(BaseModel):
     token_ids: List[int] = Field(..., description="Token ids corresponding to the generated text.")
 
 class LLMConsumer:
-    def __init__(self, llm_engine: LLMEngine, queue_config: QueueConfig, expire_in_sec: int = 0):
+    def __init__(self, llm_engine: LLMEngine, queue_config: QueueConfig):
         self.llm_engine = llm_engine
-        self.results_store = ResultStore(expire_in_sec=expire_in_sec)
+        self.results_store = ResultStore(expire_in_sec=queue_config.result_store_expire_in_sec)
         self.queue_server = ReconnectingQueueServer(queue_config)
 
     def run(self) -> None:
