@@ -310,6 +310,7 @@ class ReconnectingQueueServer:
 if __name__ == '__main__':
     # Usage example
     server = ReconnectingQueueServer(QueueConfig())
-    from sample_tasks import echo
+    def echo(body):
+        print(f'>>>>>>>>>>>>>>>> {body}')
     server.register_task(echo)
     server.run()
