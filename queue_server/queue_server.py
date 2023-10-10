@@ -46,6 +46,7 @@ class QueueServer:
             port=config.redis_config.port,
             decode_responses=True  # add this if you want the responses to be str and not bytes
         )
+        self.expiration_time = config.redis_config.expiration_time
 
         self._connection = None
         self._channel = None
@@ -172,7 +173,7 @@ class QueueServer:
 
     def update_status_queue(self, request_id: str, status: Status):
         try:
-            self.redis.set(f"status:{request_id}", status.value)
+            self.redis.setex(f"status:{request_id}", self.expiration_time, status.value)
             logger.info(green(f"Updated status to '{status}' for request {request_id}"))
         except Exception as e:
             logger.error(f"Error updating status for request {request_id}: {e}")
@@ -180,7 +181,7 @@ class QueueServer:
     def update_results_queue(self, request_id: str, result_data: Dict[str, Any]):
         try:
             validated_data = self.config.result_data_format(**result_data)
-            self.redis.set(f"result:{request_id}", ResultMessage(request_id=request_id, result=validated_data.dict()).json())
+            self.redis.setex(f"result:{request_id}", self.expiration_time, ResultMessage(request_id=request_id, result=validated_data.dict()).json())
             logger.info(green(f"Updated result data for request {request_id}"))
         except ValidationError as e:
             logger.error(f"Error validating result data for request {request_id}: {e}")

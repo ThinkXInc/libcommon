@@ -13,6 +13,7 @@ class RedisConfig(BaseModel):
     host: str = Config.REDIS_CACHE_HOST
     port: int = Config.REDIS_CACHE_PORT
     loglevel: int = Config.REDIS_CACHE_LOGLEVEL
+    expiration_time: int = Config.REDIS_CACHE_EXPIRATION_TIME_SEC  # default is 3 minutes in seconds
     #password: str = os.environ.get("REDIS_CACHE_PASSWORD")
 
 class QueueConfig(BaseModel):
