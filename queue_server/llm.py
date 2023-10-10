@@ -19,8 +19,8 @@ from libcommon.color import red, yellow, cyan, blue, bold, magenta, orange, gree
 class InferenceOutput(BaseModel):
     request_id: str
     prompt: str
-    generated_text: str
-    generated_token_ids: List[int]
+    text: str
+    token_ids: List[int]
     finished: bool
     finish_reason: Optional[str]
 
@@ -34,18 +34,18 @@ class ResultStore:
     >>> inference_output = InferenceOutput(
     ...     request_id="1",
     ...     prompt="Hello",
-    ...     generated_text="Hello, World!",
-    ...     generated_token_ids=[1, 2, 3],
+    ...     text="Hello, World!",
+    ...     token_ids=[1, 2, 3],
     ...     finished=True,
     ...     finish_reason="Completed"
     ... )
     >>> store.add("1", inference_output)
-    >>> print(store.get("1").generated_text)
+    >>> print(store.get("1").text)
     Hello, World!
     >>> print(store.is_finished("1"))
     stop
     >>> removed_output = store.pop("1")
-    >>> print(removed_output.generated_text)
+    >>> print(removed_output.text)
     Hello, World!
     >>> print(store.get("1"))
     None
@@ -135,16 +135,16 @@ def inference_step(llm_engine: LLMEngine, results_store: ResultStore) -> List[In
         request_id = result.request_id
         prompt = result.prompt
         prompt_token_ids = result.prompt_token_ids
-        generated_text = result.prompt + result.outputs[0].text
-        generate_token_ids = prompt_token_ids + result.outputs[0].token_ids
+        text = result.prompt + result.outputs[0].text
+        token_ids = prompt_token_ids + result.outputs[0].token_ids
         finished = result.finished
         finish_reason = result.outputs[0].finish_reason
 
         # Append data to lists
         request_ids.append(request_id)
         prompts.append(prompt)
-        texts.append(generated_text)
-        token_ids_list.append(generate_token_ids)
+        texts.append(text)
+        token_ids_list.append(token_ids)
         finished_list.append(finished)
         reason_list.append(finish_reason)
 
@@ -152,8 +152,8 @@ def inference_step(llm_engine: LLMEngine, results_store: ResultStore) -> List[In
         output = InferenceOutput(
             request_id=request_id,
             prompt=prompt,
-            generated_text=generated_text,
-            generated_token_ids=generate_token_ids,
+            text=text,
+            token_ids=token_ids,
             finished=finished,
             finish_reason=finish_reason
         )

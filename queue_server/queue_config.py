@@ -1,4 +1,11 @@
 from pydantic import BaseModel
+from pydantic import create_model
+from typing import Dict, Type, List, Optional
+
+class ResultDataFormat(BaseModel):
+    # TODO: enable customization from outside of this file
+    text: str
+    token_ids: List[int]
 
 class QueueConfig(BaseModel):
     user: str = 'guest'  # Assuming default RabbitMQ credentials. Change if necessary.
@@ -19,6 +26,8 @@ class QueueConfig(BaseModel):
     queue_auto_delete: bool = False
     task_queue_name: str = 'task_queue'
     status_queue_name: str = 'status_queue'
+    results_queue_name: str = 'results_queue'
+    result_data_format = ResultDataFormat
 
     def __str__(self):
         return (
@@ -37,9 +46,11 @@ class QueueConfig(BaseModel):
             f"socket_timeout={self.socket_timeout}, "
             f"task_queue_name={self.task_queue_name}, "
             f"status_queue_name={self.status_queue_name}, "
+            f"results_queue_name={self.results_queue_name}, "
             f"queue_durable={self.queue_durable}, "
             f"queue_exclusive={self.queue_exclusive}, "
             f"queue_auto_delete={self.queue_auto_delete}"
+            f"result_data_format={self.result_data_format}"
             f")"
         )
 

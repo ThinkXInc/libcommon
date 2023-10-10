@@ -12,6 +12,8 @@ logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta, green
 # queue config
 from libcommon.queue_server.queue_config import QueueConfig
+# queue server
+from libcommon.queue_server.queue_server import Status, TaskMessage, StatusMessage, ResultMessage
 
 DELIVERY_PERSISTENT = 2
 
@@ -168,13 +170,13 @@ class QueuePublisher:
         
         try:
             request_id = self.random_id()
-            message_body = json.dumps({"request_id": request_id, "message": message})
             self._channel.basic_publish(
                 exchange='',
                 routing_key=self.config.task_queue_name,
-                body=message_body,
-                properties=pika.BasicProperties(delivery_mode=delivery_mode),  # 2: make message persistent
-                mandatory=mandatory)
+                body=TaskMessage(request_id=request_id, message=message).json(),
+                properties=pika.BasicProperties(delivery_mode=delivery_mode),
+                mandatory=mandatory
+            )
         except Exception as e:
             logger.error(f"Error during publishing: {e}")
             # Depending on your requirements, you might want to retry, raise the exception, or handle it in another way.
@@ -184,18 +186,55 @@ class QueuePublisher:
         return request_id
 
     def get_status(self, request_id: str) -> str:
+        logger.info(f'trying to get status from {self.config.status_queue_name} by request_id: {request_id}')
+
         if not self._connection_manager.is_connected:
             raise Exception("Connection not open. Ensure you're connected first.")
         if not self._channel:
             raise Exception("Channel not opened. Ensure you're connected first.")
         
-        # Get the status from status_queue
-        method_frame, header_frame, body = self._channel.basic_get(self.config.status_queue_name)
-        if method_frame:
-            data = json.loads(body)
-            if data["request_id"] == request_id:
-                return data["status"]
-        return "Not found"
+        status_event = threading.Event()
+        status_result = [None]  # Using a list to store the result due to Python's scoping rules with closures.
+
+        def status_callback(channel, method, properties, body):
+            status_message = StatusMessage.parse_raw(body)  # Convert the JSON string back to a model instance
+            print(status_message)
+            logger.info(yellow(f'status message found retrieved in queue: {status_message}'))
+            if status_message.request_id == request_id:
+                status_result[0] = status_message.status
+            else:
+                status_result[0] = "Not found"
+            status_event.set()
+
+        # Get the status from status_queue using basic_get
+        self._channel.basic_get(self.config.status_queue_name, status_callback)
+        status_event.wait()  # Wait until the callback has been executed
+        return status_result[0]
+
+    def get_result(self, request_id: str) -> str:
+        """Fetch result data from the results queue."""
+        logger.info(f'trying to get result from {self.config.results_queue_name} by request_id: {request_id}')
+
+        if not self._connection_manager.is_connected:
+            raise Exception("Connection not open. Ensure you're connected first.")
+        if not self._channel:
+            raise Exception("Channel not opened. Ensure you're connected first.")
+        
+        result_event = threading.Event()
+        result_data = [None]  # Using a list to store the result due to Python's scoping rules with closures.
+
+        def result_callback(channel, method, properties, body):
+            result_message = ResultMessage.parse_raw(body)  # Convert the JSON string back to a model instance
+            if result_message.request_id == request_id:
+                result_data[0] = result_message.result
+            else:
+                result_data[0] = "Result not found"
+            result_event.set()
+
+        # Get the result data from results_queue using basic_get
+        self._channel.basic_get(self.config.results_queue_name, result_callback)
+        result_event.wait()  # Wait until the callback has been executed
+        return result_data[0]
 
     def random_id(self) -> str:
         return str(uuid.uuid4().hex)

@@ -1,6 +1,8 @@
 import pika
 import json
 from enum import Enum
+from pydantic import BaseModel, Field, ValidationError
+from typing import Union, Any, Dict
 # logger
 import sys
 sys.path.append('../../')
@@ -18,6 +20,22 @@ class Status(str, Enum):
     finished = "finished"
     progress = "progress"
     failed = "failed"
+
+
+class TaskMessage(BaseModel):
+    request_id: str = Field(..., description="Unique identifier for the request/task")
+    message: str = Field(..., description="Request text message. e.g. prompt")
+
+
+class StatusMessage(BaseModel):
+    request_id: str = Field(..., description="Unique identifier for the request/task")
+    status: str = Field(..., description="Current status of the request/task")
+
+
+class ResultMessage(BaseModel):
+    request_id: str = Field(..., description="Unique identifier for the request/task")
+    result: Dict[str, Any] = Field(..., description="Result of the processed task containing text and token ids.")
+
 
 class QueueServer:
     def __init__(self, config: QueueConfig):  # TODO: config type by pydantic
@@ -71,6 +89,7 @@ class QueueServer:
         """Called when our channel has opened"""
         logger.info(green(f'Channel {channel.channel_number} opened on {self.config.host}:{self.config.port}'))
         self._channel = channel
+        # Task queue declaration
         self._channel.queue_declare(
             queue=self.config.task_queue_name,
             durable=self.config.queue_durable,
@@ -78,13 +97,21 @@ class QueueServer:
             auto_delete=self.config.queue_auto_delete,
             callback=self.on_queue_declared
         )
-        # Additional status queue declaration
+        # Status queue declaration
         self._channel.queue_declare(
             queue=self.config.status_queue_name,
             durable=self.config.queue_durable,
             exclusive=self.config.queue_exclusive,
             auto_delete=self.config.queue_auto_delete
         )
+        # Results queue declaration
+        self._channel.queue_declare(
+            queue=self.config.results_queue_name,
+            durable=self.config.queue_durable,
+            exclusive=self.config.queue_exclusive,
+            auto_delete=self.config.queue_auto_delete
+        )
+
 
     def on_connection_open_error(self, _unused_connection, err):
         logger.error('Connection open failed: %s', err)
@@ -139,17 +166,44 @@ class QueueServer:
 
     def update_status_queue(self, request_id: str, status: Status):
         try:
-            status_body = json.dumps({"request_id": request_id, "status": status.value})
             # Note: You need a reference to the channel. You can make the channel an instance variable in LLMConsumer
             self._channel.basic_publish(
                 exchange='',
                 routing_key=self.config.status_queue_name,
-                body=status_body
+                body=StatusMessage(request_id=request_id, status=status.value).json()
             )
             logger.info(green(f"Updated status to {status} for request {request_id}"))
         except Exception as e:
             logger.error(f"Error updating status for request {request_id}: {e}")
 
+    def update_results_queue(self, request_id: str, result_data: Dict[str, Any]):
+        """Update the results queue with the result data."""
+        try:
+            # Ensure that result_data fits the expected format
+            validated_data = self.config.result_data_format(**result_data)
+            self._channel.basic_publish(
+                exchange='',
+                routing_key=self.config.results_queue_name,
+                body=ResultMessage(request_id=request_id, result=validated_data.dict()).json()
+            )
+            logger.info(green(f"Updated result data for request {request_id}"))
+        except ValidationError as e:
+            logger.error(f"Error validating result data for request {request_id}: {e}")
+        except Exception as e:
+            logger.error(f"Error updating result data for request {request_id}: {e}")
+
+    def delete_from_results_queue(self, request_id: str):
+        """Delete a specific result from the results queue."""
+        # Note: Deleting a specific message from RabbitMQ is not straightforward.
+        # We will consume and not ack until we find the right one.
+        # This is a potentially expensive operation!
+        for method_frame, header_frame, body in self._channel.consume(queue=self.config.results_queue_name):
+            data = json.loads(body)
+            if data["request_id"] == request_id:
+                self._channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+                break
+            self._channel.basic_nack(delivery_tag=method_frame.delivery_tag)
+        logger.info(green(f"Deleted result data for request {request_id}"))
 
     # Run/Stop
 
@@ -216,6 +270,11 @@ class ReconnectingQueueServer:
     def update_status_queue(self, request_id: str, status: Status):
         self._queue_server.update_status_queue(request_id, status)
 
+    def update_results_queue(self, request_id: str, result_data: Dict[str, Any]):
+        self._queue_server.update_results_queue(request_id, result_data)
+
+    def delete_from_results_queue(self, request_id: str):
+        self._queue_server.delete_from_results_queue(request_id, result_data)
 
 if __name__ == '__main__':
     # Usage example

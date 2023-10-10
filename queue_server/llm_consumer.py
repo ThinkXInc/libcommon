@@ -1,7 +1,8 @@
 # llm_consumer.py
 import threading
 import time
-from typing import Optional, Union
+from typing import Optional, Union, List
+from pydantic import BaseModel, Field
 from vllm.engine.llm_engine import LLMEngine
 
 import sys
@@ -15,6 +16,10 @@ from libcommon.logger import Logger
 logger = Logger()
 logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta, orange, green
+
+class ResultData(BaseModel):
+    text: str = Field(..., description="Generated text from the model.")
+    token_ids: List[int] = Field(..., description="Token ids corresponding to the generated text.")
 
 class LLMConsumer:
     def __init__(self, llm_engine: LLMEngine, queue_config: QueueConfig, expire_in_sec: int = 0):
@@ -33,8 +38,12 @@ class LLMConsumer:
                     outputs = inference_step(self.llm_engine, self.results_store)
                     if delay: time.sleep(delay)  # You can adjust this sleep time as necessary
 
-                    # update status to "finished"
+                    # update status and result
                     for inference_output in outputs:
+
+                        result_data = ResultData(text=inference_output.text, token_ids=inference_output.token_ids)
+                        self.update_result(inference_output.request_id, result_data)
+
                         if inference_output.finished:
                             self.update_status(inference_output.request_id, Status.finished)
 
@@ -57,6 +66,11 @@ class LLMConsumer:
 
     def update_status(self, request_id: str, status: Status):
         return self.queue_server.update_status_queue(request_id, status)
+
+    def update_result(self, request_id: str, result_data: ResultData) -> None:
+        """Update the result in the results queue."""
+        # Adjusted the method to take the ResultData model directly as a parameter, rather than individual fields
+        self.queue_server.update_results_queue(request_id, result_data.dict())  # Converting ResultData model to dict
 
 if __name__ == "__main__":
     from libcommon.queue_server.llm import llm_engine, engine_args
