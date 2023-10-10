@@ -1,4 +1,5 @@
 import pika
+from redis import StrictRedis
 import json
 from enum import Enum
 from pydantic import BaseModel, Field, ValidationError
@@ -40,6 +41,11 @@ class ResultMessage(BaseModel):
 class QueueServer:
     def __init__(self, config: QueueConfig):  # TODO: config type by pydantic
         self.config = config
+        self.redis = StrictRedis(
+            host=config.redis_config.host,
+            port=config.redis_config.port,
+            decode_responses=True  # add this if you want the responses to be str and not bytes
+        )
 
         self._connection = None
         self._channel = None
@@ -166,26 +172,15 @@ class QueueServer:
 
     def update_status_queue(self, request_id: str, status: Status):
         try:
-            # Note: You need a reference to the channel. You can make the channel an instance variable in LLMConsumer
-            self._channel.basic_publish(
-                exchange='',
-                routing_key=self.config.status_queue_name,
-                body=StatusMessage(request_id=request_id, status=status.value).json()
-            )
-            logger.info(green(f"Updated status to {status} for request {request_id}"))
+            self.redis.set(f"status:{request_id}", status.value)
+            logger.info(green(f"Updated status to '{status}' for request {request_id}"))
         except Exception as e:
             logger.error(f"Error updating status for request {request_id}: {e}")
 
     def update_results_queue(self, request_id: str, result_data: Dict[str, Any]):
-        """Update the results queue with the result data."""
         try:
-            # Ensure that result_data fits the expected format
             validated_data = self.config.result_data_format(**result_data)
-            self._channel.basic_publish(
-                exchange='',
-                routing_key=self.config.results_queue_name,
-                body=ResultMessage(request_id=request_id, result=validated_data.dict()).json()
-            )
+            self.redis.set(f"result:{request_id}", ResultMessage(request_id=request_id, result=validated_data.dict()).json())
             logger.info(green(f"Updated result data for request {request_id}"))
         except ValidationError as e:
             logger.error(f"Error validating result data for request {request_id}: {e}")
@@ -193,17 +188,52 @@ class QueueServer:
             logger.error(f"Error updating result data for request {request_id}: {e}")
 
     def delete_from_results_queue(self, request_id: str):
-        """Delete a specific result from the results queue."""
-        # Note: Deleting a specific message from RabbitMQ is not straightforward.
-        # We will consume and not ack until we find the right one.
-        # This is a potentially expensive operation!
-        for method_frame, header_frame, body in self._channel.consume(queue=self.config.results_queue_name):
-            data = json.loads(body)
-            if data["request_id"] == request_id:
-                self._channel.basic_ack(delivery_tag=method_frame.delivery_tag)
-                break
-            self._channel.basic_nack(delivery_tag=method_frame.delivery_tag)
-        logger.info(green(f"Deleted result data for request {request_id}"))
+        try:
+            self.redis.delete(f"result:{request_id}")
+            logger.info(green(f"Deleted result data for request {request_id}"))
+        except Exception as e:
+            logger.error(f"Error deleting result for request {request_id}: {e}")
+
+    #def update_status_queue(self, request_id: str, status: Status):
+    #    try:
+    #        # Note: You need a reference to the channel. You can make the channel an instance variable in LLMConsumer
+    #        self._channel.basic_publish(
+    #            exchange='',
+    #            routing_key=self.config.status_queue_name,
+    #            body=StatusMessage(request_id=request_id, status=status.value).json()
+    #        )
+    #        logger.info(green(f"Updated status to {status} for request {request_id}"))
+    #    except Exception as e:
+    #        logger.error(f"Error updating status for request {request_id}: {e}")
+
+    #def update_results_queue(self, request_id: str, result_data: Dict[str, Any]):
+    #    """Update the results queue with the result data."""
+    #    try:
+    #        # Ensure that result_data fits the expected format
+    #        validated_data = self.config.result_data_format(**result_data)
+    #        self._channel.basic_publish(
+    #            exchange='',
+    #            routing_key=self.config.results_queue_name,
+    #            body=ResultMessage(request_id=request_id, result=validated_data.dict()).json()
+    #        )
+    #        logger.info(green(f"Updated result data for request {request_id}"))
+    #    except ValidationError as e:
+    #        logger.error(f"Error validating result data for request {request_id}: {e}")
+    #    except Exception as e:
+    #        logger.error(f"Error updating result data for request {request_id}: {e}")
+
+    #def delete_from_results_queue(self, request_id: str):
+    #    """Delete a specific result from the results queue."""
+    #    # Note: Deleting a specific message from RabbitMQ is not straightforward.
+    #    # We will consume and not ack until we find the right one.
+    #    # This is a potentially expensive operation!
+    #    for method_frame, header_frame, body in self._channel.consume(queue=self.config.results_queue_name):
+    #        data = json.loads(body)
+    #        if data["request_id"] == request_id:
+    #            self._channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+    #            break
+    #        self._channel.basic_nack(delivery_tag=method_frame.delivery_tag)
+    #    logger.info(green(f"Deleted result data for request {request_id}"))
 
     # Run/Stop
 

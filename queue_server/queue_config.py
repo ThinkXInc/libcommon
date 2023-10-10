@@ -1,3 +1,5 @@
+import os
+from config import Config
 from pydantic import BaseModel
 from pydantic import create_model
 from typing import Dict, Type, List, Optional
@@ -7,11 +9,18 @@ class ResultDataFormat(BaseModel):
     text: str
     token_ids: List[int]
 
+class RedisConfig(BaseModel):
+    host: str = Config.REDIS_CACHE_HOST
+    port: int = Config.REDIS_CACHE_PORT
+    loglevel: int = Config.REDIS_CACHE_LOGLEVEL
+    #password: str = os.environ.get("REDIS_CACHE_PASSWORD")
+
 class QueueConfig(BaseModel):
     user: str = 'guest'  # Assuming default RabbitMQ credentials. Change if necessary.
     password: str = 'guest'  # Assuming default RabbitMQ credentials. Change if necessary.
     host: str = 'localhost'
     port: int = 5672
+    redis_config: RedisConfig = RedisConfig()
     blocked_connection_timeout: int = None
     channel_max: int = 65535
     frame_max: int = 131072

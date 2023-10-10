@@ -1,8 +1,10 @@
 import pika
+from redis import StrictRedis
 import json
 import time
 import threading
 import uuid
+from typing import Dict, Any
 # logger
 import sys
 sys.path.append('../../')
@@ -155,6 +157,11 @@ class QueuePublisher:
 
     def __init__(self, config, connection_manager: QueueConnectionManager):
         self.config = config
+        self.redis = StrictRedis(
+            host=config.redis_config.host,
+            port=config.redis_config.port,
+            decode_responses=True  # add this if you want the responses to be str and not bytes
+        )
         self._connection_manager = connection_manager
         self._channel = self._connection_manager.channel
         logger.info(f'Publisher initialized on {self.config.host}:{self.config.host} queue:{self.config.task_queue_name}.')
@@ -186,55 +193,39 @@ class QueuePublisher:
         return request_id
 
     def get_status(self, request_id: str) -> str:
-        logger.info(f'trying to get status from {self.config.status_queue_name} by request_id: {request_id}')
+        """Fetch status from Redis."""
+        logger.info(f'trying to get status from Redis by request_id: {request_id}')
 
-        if not self._connection_manager.is_connected:
-            raise Exception("Connection not open. Ensure you're connected first.")
-        if not self._channel:
-            raise Exception("Channel not opened. Ensure you're connected first.")
-        
-        status_event = threading.Event()
-        status_result = [None]  # Using a list to store the result due to Python's scoping rules with closures.
-
-        def status_callback(channel, method, properties, body):
-            status_message = StatusMessage.parse_raw(body)  # Convert the JSON string back to a model instance
-            print(status_message)
-            logger.info(yellow(f'status message found retrieved in queue: {status_message}'))
-            if status_message.request_id == request_id:
-                status_result[0] = status_message.status
+        try:
+            # Fetch status from Redis
+            status = self.redis.get(f"status:{request_id}")
+            if status:
+                logger.info(yellow(f'status retrieved: {status}'))
+                return status
             else:
-                status_result[0] = "Not found"
-            status_event.set()
+                logger.warning(yellow(f'status for {request_id} not found in Redis'))
+                return "Not found"
+        except Exception as e:
+            logger.error(f"Error fetching status from Redis for request {request_id}: {e}")
+            raise
 
-        # Get the status from status_queue using basic_get
-        self._channel.basic_get(self.config.status_queue_name, status_callback)
-        status_event.wait()  # Wait until the callback has been executed
-        return status_result[0]
+    def get_result(self, request_id: str) -> Dict[str, Any]:
+        """Fetch result data from Redis."""
+        logger.info(f'trying to get result from Redis by request_id: {request_id}')
 
-    def get_result(self, request_id: str) -> str:
-        """Fetch result data from the results queue."""
-        logger.info(f'trying to get result from {self.config.results_queue_name} by request_id: {request_id}')
-
-        if not self._connection_manager.is_connected:
-            raise Exception("Connection not open. Ensure you're connected first.")
-        if not self._channel:
-            raise Exception("Channel not opened. Ensure you're connected first.")
-        
-        result_event = threading.Event()
-        result_data = [None]  # Using a list to store the result due to Python's scoping rules with closures.
-
-        def result_callback(channel, method, properties, body):
-            result_message = ResultMessage.parse_raw(body)  # Convert the JSON string back to a model instance
-            if result_message.request_id == request_id:
-                result_data[0] = result_message.result
+        try:
+            # Fetch result from Redis
+            result_json = self.redis.get(f"result:{request_id}")
+            if result_json:
+                result_message = ResultMessage.parse_raw(result_json)
+                logger.info(yellow(f'result data retrieved: {result_message.result}'))
+                return result_message.result
             else:
-                result_data[0] = "Result not found"
-            result_event.set()
-
-        # Get the result data from results_queue using basic_get
-        self._channel.basic_get(self.config.results_queue_name, result_callback)
-        result_event.wait()  # Wait until the callback has been executed
-        return result_data[0]
+                logger.warning(yellow(f'result for {request_id} not found in Redis'))
+                return {"error": "Result not found"}
+        except Exception as e:
+            logger.error(f"Error fetching result data from Redis for request {request_id}: {e}")
+            raise
 
     def random_id(self) -> str:
         return str(uuid.uuid4().hex)

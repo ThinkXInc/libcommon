@@ -35,12 +35,15 @@ try:
         request_ids.append(request_id)
 
     # Poll the server for status until the task is finished
-    while True:
-        time.sleep(1)  # Wait for 1 seconds before each poll
+    while len(request_ids) > 0:
+        time.sleep(0.25)  # Wait for 1 seconds before each poll
         for request_id in request_ids:
             status = publisher.get_status(request_id)
             if status == Status.finished.value:
                 logger.info(green(f"Task {request_id} finished."))
+                result = publisher.get_result(request_id)
+                logger.info(cyan(f"Result for Task {request_id}: {result}"))
+                request_ids.remove(request_id)
                 break
             elif status == Status.progress.value:
                 logger.info(yellow(f"Task {request_id} is still in progress..."))
@@ -49,10 +52,7 @@ try:
             else:
                 logger.info(red(f"Unknown status for Task {request_id}: {status}"))
 
-    # Once the task is finished, retrieve the result
-    for request_id in request_ids:
-        result = publisher.get_result(request_id)
-        logger.info(green(f"Result for Task {request_id}: {result}"))
+    logger.info(magenta('all done.'))
 
 finally:
     # Ensure connection is always closed gracefully, even if there's an error
