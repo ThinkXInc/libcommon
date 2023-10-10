@@ -8,6 +8,8 @@ import sys
 sys.path.append('../../')
 # llm
 from libcommon.queue_server.llm import inference_step, InferenceOutput, ResultStore
+# queue server
+from libcommon.queue_server.queue_server import ReconnectingQueueServer, QueueConfig
 # logger
 from libcommon.logger import Logger
 logger = Logger()
@@ -15,9 +17,10 @@ logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta, orange, green
 
 class LLMConsumer:
-    def __init__(self, llm_engine: LLMEngine, expire_in_sec: int = 0):
+    def __init__(self, llm_engine: LLMEngine, queue_config: QueueConfig, expire_in_sec: int = 0):
         self.llm_engine = llm_engine
         self.results_store = ResultStore(expire_in_sec=expire_in_sec)
+        self.queue_server = ReconnectingQueueServer(queue_config)
 
     def run(self) -> None:
         """
@@ -38,6 +41,13 @@ class LLMConsumer:
         thread.start()
         
         logger.info(yellow("Started the consumer process in a separate thread."))
+
+        # Start the queue server
+        self.queue_server.run()
+
+    def register_task(self, func, *args, **kwargs):
+        """Wrapper function to register a task with the queue server."""
+        self.queue_server.register_task(func, *args, **kwargs)
 
 if __name__ == "__main__":
     from libcommon.queue_server.llm import llm_engine, engine_args
