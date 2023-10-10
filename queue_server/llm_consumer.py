@@ -9,7 +9,7 @@ sys.path.append('../../')
 # llm
 from libcommon.queue_server.llm import inference_step, InferenceOutput, ResultStore
 # queue server
-from libcommon.queue_server.queue_server import ReconnectingQueueServer, QueueConfig
+from libcommon.queue_server.queue_server import ReconnectingQueueServer, QueueConfig, Status
 # logger
 from libcommon.logger import Logger
 logger = Logger()
@@ -32,8 +32,14 @@ class LLMConsumer:
                 try:
                     outputs = inference_step(self.llm_engine, self.results_store)
                     if delay: time.sleep(delay)  # You can adjust this sleep time as necessary
+
+                    # update status to "finished"
+                    for inference_output in outputs:
+                        if inference_output.finished:
+                            self.update_status(inference_output.request_id, Status.finished)
+
                 except Exception as e:
-                    logger.error(f"Error occurred in the consumer thread: {e}")
+                    logger.error(red(f"Error occurred in the consumer thread: {e}"))
                     break
         
         thread = threading.Thread(target=_inference_step)
@@ -48,6 +54,9 @@ class LLMConsumer:
     def register_task(self, func, *args, **kwargs):
         """Wrapper function to register a task with the queue server."""
         self.queue_server.register_task(func, *args, **kwargs)
+
+    def update_status(self, request_id: str, status: Status):
+        return self.queue_server.update_status_queue(request_id, status)
 
 if __name__ == "__main__":
     from libcommon.queue_server.llm import llm_engine, engine_args

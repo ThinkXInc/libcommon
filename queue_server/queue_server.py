@@ -15,7 +15,7 @@ from libcommon.queue_server.queue_config import QueueConfig
 channel = None
 
 class Status(str, Enum):
-    done = "done"
+    finished = "finished"
     progress = "progress"
     failed = "failed"
 
@@ -141,7 +141,7 @@ class QueueServer:
         try:
             status_body = json.dumps({"request_id": request_id, "status": status.value})
             # Note: You need a reference to the channel. You can make the channel an instance variable in LLMConsumer
-            self.channel.basic_publish(
+            self._channel.basic_publish(
                 exchange='',
                 routing_key=self.config.status_queue_name,
                 body=status_body
@@ -212,6 +212,9 @@ class ReconnectingQueueServer:
 
     def register_task(self, func, *args, **kwargs):
         self._queue_server.register_task(func, *args, **kwargs)
+
+    def update_status_queue(self, request_id: str, status: Status):
+        self._queue_server.update_status_queue(request_id, status)
 
 
 if __name__ == '__main__':
