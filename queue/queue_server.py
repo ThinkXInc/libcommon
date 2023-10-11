@@ -12,7 +12,7 @@ logger = Logger()
 logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta, green, orange
 # queue config
-from libcommon.queue_server.queue_config import QueueConfig
+from libcommon.queue.queue_config import QueueConfig
 
 # Create a global channel variable to hold our channel object in
 channel = None

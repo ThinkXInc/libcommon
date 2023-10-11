@@ -6,9 +6,9 @@ logger = Logger()
 logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta
 # llm
-from libcommon.queue_server.llm import engine_args, sampling_params, InferenceOutput, llm_engine, add_request, inference_step
+from libcommon.queue.llm import engine_args, sampling_params, InferenceOutput, llm_engine, add_request, inference_step
 # llm consumer
-from libcommon.queue_server.llm_consumer import LLMConsumer, QueueConfig
+from libcommon.queue.llm_consumer import LLMConsumer, QueueConfig
 
 # Initialize LLMEngine instance
 engine = llm_engine(engine_args)

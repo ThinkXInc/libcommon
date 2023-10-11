@@ -1,4 +1,4 @@
 # TODO:
-#from libcommon.queue_server.queue_config import QueueConfig
-#from libcommon.queue_server.queue_server import QueueServer, ReconnectingQueueServer
-#from libcommon.queue_server.queue_publisher import QueuePublisher, QueueConnectionManager
+#from libcommon.queue.queue_config import QueueConfig
+#from libcommon.queue.queue_squeue QueueServer, ReconnectingQueueServer
+#from libcommon.queue.queue_publisher import QueuePublisher, QueueConnectionManager

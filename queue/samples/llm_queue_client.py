@@ -7,9 +7,9 @@ logger = Logger()
 logger.setLevel(logger.DEBUG)
 from libcommon.color import red, yellow, cyan, blue, bold, magenta, green
 # publisher
-from libcommon.queue_server.queue_publisher import QueueConfig, QueuePublisher, QueueConnectionManager
+from libcommon.queue.queue_publisher import QueueConfig, QueuePublisher, QueueConnectionManager
 # server
-from libcommon.queue_server.queue_server import Status
+from libcommon.queue.queue_server import Status
 
 # Usage example
 try:

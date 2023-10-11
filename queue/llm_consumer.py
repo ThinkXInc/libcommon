@@ -8,9 +8,9 @@ from vllm.engine.llm_engine import LLMEngine
 import sys
 sys.path.append('../../')
 # llm
-from libcommon.queue_server.llm import inference_step, InferenceOutput, ResultStore
+from libcommon.queue.llm import inference_step, InferenceOutput, ResultStore
 # queue server
-from libcommon.queue_server.queue_server import ReconnectingQueueServer, QueueConfig, Status
+from libcommon.queue.queue_server import ReconnectingQueueServer, QueueConfig, Status
 # logger
 from libcommon.logger import Logger
 logger = Logger()
@@ -73,7 +73,7 @@ class LLMConsumer:
         self.queue_server.update_results_queue(request_id, result_data.dict())  # Converting ResultData model to dict
 
 if __name__ == "__main__":
-    from libcommon.queue_server.llm import llm_engine, engine_args
+    from libcommon.queue.llm import llm_engine, engine_args
 
     engine = llm_engine(engine_args)
     consumer_server = LLMConsumer(engine)
