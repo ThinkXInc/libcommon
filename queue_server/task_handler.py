@@ -1,7 +1,12 @@
 import time
 from typing import Callable, Any, Dict
-
-# Assuming bold, cyan, red, ACCEPTED, OK, and ProcessingError are imported or defined elsewhere in your code
+# logger
+import sys
+sys.path.append('../../')
+from libcommon.logger import Logger
+logger = Logger()
+logger.setLevel(logger.DEBUG)
+from libcommon.color import red, yellow, cyan, blue, bold, magenta, green
 
 def register_task_with_publisher(publisher, task_name: str, *args, **kwargs) -> str:
     """
@@ -19,15 +24,14 @@ def schedule_task_with_publisher(publisher, task_name: str, delay_sec: int, *arg
     return register_task_with_publisher(publisher, task_name, *args, **kwargs)
 
 def fetch_worker_results(
-        queue_publisher: QueuePublisher,  # replace Celery queue with QueuePublisher
+        queue_publisher: QueuePublisher,
         task_id: str,
         lang: str,
         locale: Locale,
         locale_key_failed: str,
-        locale_key_unexpected_result: str,
         locale_key_still_processing: str,
         locale_key_success: str,
-        result_keys: list,
+        parser_function=None,
         additional_response_data: dict = {},
         update_callback=None):
 
@@ -36,9 +40,11 @@ def fetch_worker_results(
     print(bold(f"Task Status: {status}"))
 
     if status == "Not found":
+        logger.error(red(f"Error: Task {task_id} not found!"))
         return ProcessingError(lang, locale, locale_key=locale_key_failed).http_response()
 
     if status != Status.finished.value:
+        logger.debug(yellow(f"Task {task_id} still processing..."))
         response_data = {
             'task_id': task_id,
             **additional_response_data
@@ -50,30 +56,49 @@ def fetch_worker_results(
 
     # Use the get_result method from the QueuePublisher to fetch the task result
     try:
+        logger.debug(cyan("Fetching task result..."))
         result = queue_publisher.get_result(task_id)
-        print(cyan(f"Task Result => {result}"))
+        logger.info(cyan(f"Task Result => {result}"))
     except Exception as e:
+        logger.error(red(f"Error fetching result for task {task_id}: {e}"))
         return ProcessingError(lang, locale, locale_key=locale_key_failed).http_response()
 
     if "error" in result:
+        logger.error(red(f"Error found in task result for {task_id}!"))
         return ProcessingError(lang, locale, locale_key=locale_key_failed).http_response()
-    elif not all(key in result for key in result_keys):
-        print(red(result))
-        return ProcessingError(
-            lang, locale, locale_key=locale_key_unexpected_result).http_response()
-    else:
-        if update_callback:
-            response = update_callback(result)
-            if isinstance(response, Exception):  
-                return response
 
-        response_data = {
-            'task_id': task_id,
-            **additional_response_data  
-        }
+    # Parse the result using the provided parser_function, if any
+    if parser_function:
+        logger.debug(green(f"Parsing result for task {task_id} using provided parser function..."))
+        result = parser_function(result)
 
-        for key in result_keys:
-            response_data[key] = result[key]
-            print(f"{key.capitalize()} -> {result[key]}")
+    response_data = {
+        'task_id': task_id,
+        **additional_response_data,
+        **result
+    }
 
-        return OK(locale.get(locale_key_success, lang), response_data).http_response()
+    if update_callback:
+        logger.debug(blue(f"Executing update callback for task {task_id}..."))
+        response = update_callback(result)
+        if isinstance(response, Exception):  
+            return response
+
+    logger.info(green(f"Task {task_id} processed successfully!"))
+    return OK(locale.get(locale_key_success, lang), response_data).http_response()
+
+
+if __name__ == '__main__':
+    # TODO: the below is testing draft
+    # Sample values for execution
+    queue_publisher = QueuePublisher()  # Some assumed class, needs real initialization
+    task_id = "sample_task_id"
+    lang = "en"
+    from libcommon.locale import Locale
+    locale = Locale()  # Some assumed class, needs real initialization
+    locale_key_failed = "task_failed"
+    locale_key_still_processing = "task_processing"
+    locale_key_success = "task_success"
+
+    result = fetch_worker_results(queue_publisher, task_id, lang, locale, locale_key_failed, locale_key_still_processing, locale_key_success, parser_function=parse_title_and_keywords)
+    print(result)

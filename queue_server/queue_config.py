@@ -1,8 +1,28 @@
 import os
-from config import Config
 from pydantic import BaseModel
 from pydantic import create_model
 from typing import Dict, Type, List, Optional
+
+def check_env():
+    from dotenv import load_dotenv
+    DOTENV_PATH = '/src/neuravoice-control-center/.env'
+    REQUIRED_KEYS = [
+        "REDIS_CACHE_HOST",
+        "REDIS_CACHE_PORT",
+        "REDIS_CACHE_LOGLEVEL",
+        "REDIS_CACHE_EXPIRATION_TIME_SEC",
+        # "REDIS_CACHE_PASSWORD"   # Uncomment this if you want to include password in the checks
+    ]
+    if os.path.exists(DOTENV_PATH):
+        load_dotenv(DOTENV_PATH)
+        # Check for required keys
+        missing_keys = [key for key in REQUIRED_KEYS if key not in os.environ]
+        if missing_keys:
+            raise MissingKeyError(red(f"Missing keys in .env file: {', '.join(missing_keys)}"))
+    else:
+        print(red('[WARNING] no .env file exists in {}'.format(DOTENV_PATH)))
+
+check_env()
 
 class ResultDataFormat(BaseModel):
     # TODO: enable customization from outside of this file
@@ -10,11 +30,12 @@ class ResultDataFormat(BaseModel):
     token_ids: List[int]
 
 class RedisConfig(BaseModel):
-    host: str = Config.REDIS_CACHE_HOST
-    port: int = Config.REDIS_CACHE_PORT
-    loglevel: int = Config.REDIS_CACHE_LOGLEVEL
-    expiration_time: int = Config.REDIS_CACHE_EXPIRATION_TIME_SEC  # default is 3 minutes in seconds
+    host: str = os.environ.get("REDIS_CACHE_HOST")
+    port: int = os.environ.get("REDIS_CACHE_PORT")
+    loglevel: str = os.environ.get("REDIS_CACHE_LOGLEVEL")
+    expiration_time: int = os.environ.get("REDIS_CACHE_EXPIRATION_TIME_SEC")  # default is 3 minutes in seconds
     #password: str = os.environ.get("REDIS_CACHE_PASSWORD")
+
 
 class QueueConfig(BaseModel):
     user: str = 'guest'  # Assuming default RabbitMQ credentials. Change if necessary.
