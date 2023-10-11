@@ -150,6 +150,7 @@ class QueueConnectionManager:
         """A method to handle actions after connection is fully established and queue is declared."""
         # This is just a placeholder. You can expand on this method.
         logger.info(cyan(f'Connection established on {self.config.host}:{self.config.port} {self.config.task_queue_name}'))
+        logger.info(yellow(f'QueuePublisher is ready.'))
         pass
 
 
@@ -163,25 +164,50 @@ class QueuePublisher:
             decode_responses=True  # add this if you want the responses to be str and not bytes
         )
         self._connection_manager = connection_manager
-        self._channel = self._connection_manager.channel
         logger.info(f'Publisher initialized on {self.config.host}:{self.config.host} queue:{self.config.task_queue_name}.')
 
-    def publish(self, message: str, delivery_mode=DELIVERY_PERSISTENT, mandatory=True) -> str:
+    @property
+    def channel(self):
+        # Lazy initialization: always get the latest state of the channel.
+        return self._connection_manager.channel
+
+    def publish(self, message: str, delay_in_seconds: int = 0, delivery_mode=DELIVERY_PERSISTENT, mandatory=True) -> str:
+        """Publish task request.
+
+            args:
+                - message (str)
+                - delay_in_seconds
+
+            returns:
+                - request_id (str)
+        """
         # Ensure thread safety if this is used in multi-threaded environments
 
         if not self._connection_manager.is_connected:
             raise Exception("Connection not open. Ensure you're connected first.")
 
-        if not self._channel:
+        if not self.channel:
             raise Exception("Channel not opened. Ensure you're connected first.")
         
         try:
             request_id = self.random_id()
-            self._channel.basic_publish(
+            
+            properties = pika.BasicProperties(
+                delivery_mode=delivery_mode
+            )
+            
+            if delay_in_seconds > 0:
+                # Set the delay in milliseconds
+                properties.headers = {"x-delayed-message": delay_in_seconds * 1000}
+
+            # Set the initial status in Redis
+            self.set_status_in_redis(request_id, Status.queued)
+
+            self.channel.basic_publish(
                 exchange='',
                 routing_key=self.config.task_queue_name,
                 body=TaskMessage(request_id=request_id, message=message).json(),
-                properties=pika.BasicProperties(delivery_mode=delivery_mode),
+                properties=properties,
                 mandatory=mandatory
             )
         except Exception as e:
@@ -191,6 +217,13 @@ class QueuePublisher:
 
         logger.info(yellow(f'sent message: {message}'))
         return request_id
+
+    def set_status_in_redis(self, request_id: str, status: Status):
+        try:
+            self.redis.setex(f"status:{request_id}", self.config.redis_config.expiration_time, status.value)
+            logger.info(green(f"Set status to '{status}' for request {request_id} in Redis"))
+        except Exception as e:
+            logger.error(f"Error setting status for request {request_id} in Redis: {e}")
 
     def get_status(self, request_id: str) -> str:
         """Fetch status from Redis."""

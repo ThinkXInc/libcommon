@@ -81,7 +81,7 @@ def register_celery_task_with_delay(celery_task, delay_sec, *args, **kwargs):
 
 def fetch_worker_results(
         queue,
-        task_id: str,
+        request_id: str,
         lang: str,
         locale: Locale,
         locale_key_failed: str,
@@ -96,7 +96,7 @@ def fetch_worker_results(
     
     Args:
     - queue (obj): Celery Queue instance
-    - task_id (str)
+    - request_id (str)
     - lang (str): The language code, e.g. 'en'.
     - locale (Locale): 
     - locale_key_failed (str): Locale key for the failed response.
@@ -108,7 +108,7 @@ def fetch_worker_results(
     
     Returns:
         {
-            task_id: ,
+            request_id: ,
             {key 1 in results_keys}: ,
             {key 2 in results_keys}: ,
             ..,
@@ -117,7 +117,7 @@ def fetch_worker_results(
     """
     
     # Retrieve result status from Celery Worker
-    task = queue.AsyncResult(task_id)
+    task = queue.AsyncResult(request_id)
     status = task.status
     print(bold(f"Task Status: {status}"))
 
@@ -130,7 +130,7 @@ def fetch_worker_results(
     # Handle different result scenarios
     if not result:
         response_data = {
-            'task_id': task_id,
+            'request_id': request_id,
             **additional_response_data  # Merge additional data into the response
         }
         return ACCEPTED(
@@ -148,7 +148,7 @@ def fetch_worker_results(
                 return response
 
         response_data = {
-            'task_id': task.id,
+            'request_id': task.id,
             **additional_response_data  # Merge additional data into the response
         }
 
