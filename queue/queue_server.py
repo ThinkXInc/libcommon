@@ -105,21 +105,6 @@ class QueueServer:
             auto_delete=self.config.queue_auto_delete,
             callback=self.on_queue_declared
         )
-        # Status queue declaration
-        self._channel.queue_declare(
-            queue=self.config.status_queue_name,
-            durable=self.config.queue_durable,
-            exclusive=self.config.queue_exclusive,
-            auto_delete=self.config.queue_auto_delete
-        )
-        # Results queue declaration
-        self._channel.queue_declare(
-            queue=self.config.results_queue_name,
-            durable=self.config.queue_durable,
-            exclusive=self.config.queue_exclusive,
-            auto_delete=self.config.queue_auto_delete
-        )
-
 
     def on_connection_open_error(self, _unused_connection, err):
         logger.error('Connection open failed: %s', err)

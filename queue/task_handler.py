@@ -14,7 +14,7 @@ from libcommon.response.errors import ProcessingError
 from libcommon.logger import Logger
 logger = Logger()
 logger.setLevel(logger.DEBUG)
-from libcommon.color import red, yellow, cyan, blue, bold, magenta, green
+from libcommon.color import red, yellow, cyan, blue, bold, magenta, green, light_green
 
 
 def request_llm_inference(publisher, prompt: str, delay_in_sec: int = 0) -> str:
@@ -22,7 +22,7 @@ def request_llm_inference(publisher, prompt: str, delay_in_sec: int = 0) -> str:
     Schedules a task with the given publisher to be executed after a delay.
     """
     request_id = publisher.publish(prompt, delay_in_sec)
-    print(bold(f'Task registered with id: {request_id} [with delay:{delay_in_sec}]'))
+    logger.info(light_green(f'LLM inference request registered with id: {request_id} [with delay:{delay_in_sec}]'))
     return request_id
 
 def fetch_llm_results(

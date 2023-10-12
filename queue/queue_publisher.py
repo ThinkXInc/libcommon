@@ -120,13 +120,6 @@ class QueueConnectionManager:
             auto_delete=self.config.queue_auto_delete,
             callback=self.on_queue_declared
         )
-        # Additional status queue declaration
-        self._channel.queue_declare(
-            queue=self.config.status_queue_name,
-            durable=self.config.queue_durable,
-            exclusive=self.config.queue_exclusive,
-            auto_delete=self.config.queue_auto_delete
-        )
 
     def on_connection_closed(self, _unused_connection, reason):
         if self._closing:
@@ -210,6 +203,8 @@ class QueuePublisher:
                 properties=properties,
                 mandatory=mandatory
             )
+            logger.info(light_green(
+                f"Published message \n" + "-"*100 + f"\n{message}\n" + "-"*100 + f"\nwith request_id {request_id} to {self.config.task_queue_name}"))
         except Exception as e:
             logger.error(f"Error during publishing: {e}")
             # Depending on your requirements, you might want to retry, raise the exception, or handle it in another way.
@@ -221,7 +216,7 @@ class QueuePublisher:
     def set_status_in_redis(self, request_id: str, status: Status):
         try:
             self.redis.setex(f"status:{request_id}", self.config.redis_config.expiration_time, status.value)
-            logger.info(green(f"Set status to '{status}' for request {request_id} in Redis"))
+            logger.info(green(f"Status set to '{status}' for request {request_id} in Redis"))
         except Exception as e:
             logger.error(f"Error setting status for request {request_id} in Redis: {e}")
 
