@@ -2,6 +2,7 @@ import pika
 from redis import StrictRedis
 import json
 import time
+import queue
 import threading
 import uuid
 from typing import Dict, Any
@@ -18,6 +19,43 @@ from libcommon.queue.queue_config import QueueConfig
 from libcommon.queue.queue_server import Status, TaskMessage, StatusMessage, ResultMessage
 
 DELIVERY_PERSISTENT = 2
+
+class ConnectionPool:
+    """
+    NOTE: The stored connection dosen't work in flask handlers.
+
+    usage:
+        connection_pool = ConnectionPool(size=5, config=queue_config)
+        connection_manager = connection_pool.acquire()
+        time.sleep(1)
+        publisher = QueuePublisher(queue_config, connection_manager)
+        try:
+            request_id = publisher.publish('message')
+        except Exception as e:
+            logger.error(f"Failed to publish message: {e}")
+        finally:
+            connection_pool.release(connection_manager)
+       
+    """
+
+    def __init__(self, size, config):
+        self.config = config
+        self.pool = queue.Queue(maxsize=size)
+        for _ in range(size):
+            connection_manager = QueueConnectionManager(config)
+            connection_manager.connect()
+            self.pool.put(connection_manager)
+
+    def acquire(self):
+        return self.pool.get()
+
+    def release(self, connection_manager):
+        self.pool.put(connection_manager)
+
+    def close_all(self):
+        while not self.pool.empty():
+            connection = self.pool.get_nowait()
+            connection.close()
 
 class QueueConnectionManager:
 
@@ -124,7 +162,8 @@ class QueueConnectionManager:
     def on_connection_closed(self, _unused_connection, reason):
         if self._closing:
             logger.info(f'Connection stop.')
-            self._connection.ioloop.stop()
+            if self._connection and self._connection.ioloop:
+                self._connection.ioloop.stop()
         else:
             logger.warning(f'Connection closed, reconnect necessary: {reason}')
             self.reconnect()
