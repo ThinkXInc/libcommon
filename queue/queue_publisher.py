@@ -4,6 +4,7 @@ import json
 import time
 import queue
 import threading
+import asyncio
 import uuid
 from typing import Dict, Any
 # logger
@@ -188,20 +189,31 @@ class QueueConnectionManager:
 
 class QueuePublisher:
 
-    def __init__(self, config, connection_manager: QueueConnectionManager):
+    def __init__(self, config, connection_manager: QueueConnectionManager = None):
         self.config = config
         self.redis = StrictRedis(
             host=config.redis_config.host,
             port=config.redis_config.port,
             decode_responses=True  # add this if you want the responses to be str and not bytes
         )
-        self._connection_manager = connection_manager
-        logger.info(f'Publisher initialized on {self.config.host}:{self.config.host} queue:{self.config.task_queue_name}.')
+        self._connection_manager = QueueConnectionManager(config) if not connection_manager else connection_manager
+        logger.info(f'Publisher initialized on {self.config.host}:{self.config.port} queue:{self.config.task_queue_name}.')
 
     @property
     def channel(self):
         # Lazy initialization: always get the latest state of the channel.
         return self._connection_manager.channel
+
+    def get_connection(self):
+        if not self._connection_manager.is_connected:
+            logger.info(yellow(f'publisher trying to connect: {self.config.host}:{self.config.port}'))
+            self._connection_manager.connect()
+            time.sleep(0.25)
+        return self._connection_manager
+
+    def close_connection(self):
+        logger.info(yellow(f'Publisher close connection: {self.config.host}:{self.config.port}'))
+        self._connection_manager.close()
 
     def publish(self, message: str, delay_in_seconds: int = 0, delivery_mode=DELIVERY_PERSISTENT, mandatory=True) -> str:
         """Publish task request.
@@ -216,7 +228,8 @@ class QueuePublisher:
         # Ensure thread safety if this is used in multi-threaded environments
 
         if not self._connection_manager.is_connected:
-            raise Exception("Connection not open. Ensure you're connected first.")
+            logger.warning(red('connection has not been established. wait to connect..'))
+            self.get_connection()
 
         if not self.channel:
             raise Exception("Channel not opened. Ensure you're connected first.")

@@ -21,7 +21,11 @@ def request_llm_inference(publisher, prompt: str, delay_in_sec: int = 0) -> str:
     """
     Schedules a task with the given publisher to be executed after a delay.
     """
-    request_id = publisher.publish(prompt, delay_in_sec)
+    try:
+        request_id = publisher.publish(prompt, delay_in_sec)
+    except Exception as e:
+        logger.error(f"Failed to publish message: {e}")
+
     logger.info(light_green(f'LLM inference request registered with id: {request_id} [with delay:{delay_in_sec}]'))
     return request_id
 
@@ -74,17 +78,24 @@ def fetch_llm_results(
     # Parse the result using the provided parser_function, if any
     if parser_function:
         logger.debug(green(f"Parsing result for task {request_id} using provided parser function..."))
-        result = parser_function(result)
+        result = parser_function(result['text'])
 
-    # Checking if all required keys are present in the result
-    if not all(key in result for key in result_keys):
-        logger.error(red(f"Unexpected result format for task {request_id}. Missing keys in result."))
-        return ProcessingError(lang, locale, locale_key=locale_key_unexpected_result).http_response()
+    ## Checking if all required keys are present in the result
+    # *Strict mode
+    #if not all(key in result for key in result_keys):
+    #    logger.error(red(f"Unexpected result format for task {request_id}. Missing keys in result."))
+    #    return ProcessingError(lang, locale, locale_key=locale_key_unexpected_result).http_response()
+    #
+    #response_data = {
+    #    'request_id': request_id,
+    #    **additional_response_data,
+    #    **result
+    #}
 
     response_data = {
         'request_id': request_id,
         **additional_response_data,
-        **result
+        **{key: result.get(key, "") if result.get(key) is not None else "" for key in result_keys}
     }
 
     if update_callback:
