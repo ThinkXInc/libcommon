@@ -78,7 +78,8 @@ def fetch_llm_results(
     # Parse the result using the provided parser_function, if any
     if parser_function:
         logger.debug(green(f"Parsing result for task {request_id} using provided parser function..."))
-        result = parser_function(result['text'])
+        parsed_result = parser_function(result['text'])
+        logger.info(cyan(f'parsed result: {parsed_result}'))
 
     ## Checking if all required keys are present in the result
     # *Strict mode
@@ -95,12 +96,12 @@ def fetch_llm_results(
     response_data = {
         'request_id': request_id,
         **additional_response_data,
-        **{key: result.get(key, "") if result.get(key) is not None else "" for key in result_keys}
+        **{key: parsed_result.get(key, "") if parsed_result.get(key) is not None else "" for key in result_keys}
     }
 
     if update_callback:
         logger.debug(blue(f"Executing update callback for task {request_id}..."))
-        response = update_callback(result)
+        response = update_callback(parsed_result)
         if isinstance(response, Exception):  
             return response
 
