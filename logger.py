@@ -56,28 +56,28 @@ class Logger:
     """
     Custom Logger that uses level-based formatting.
     """
-    
+
     # Default log formats
-    DEFAULT_FORMAT_DEBUG = '[%(levelname)s] [%(name)s] %(message)s'  # %(message) is replaced by "[%(funcName):%(lineno)] %(message)"
+    DEFAULT_FORMAT_DEBUG = '[%(levelname)s] [%(name)s] %(message)s'
     DEFAULT_FORMAT_INFO = '%(message)s'
     DEFAULT_FORMAT_WARNING = '[WARNING] [%(name)s] %(message)s'
     DEFAULT_FORMAT_ERROR = '[ERROR] [%(asctime)s] [%(name)s] %(message)s'
+    DEFAULT_LOG_LEVEL = logging.INFO
 
     def __init__(self, name: str = None):
         if name is None:
-            # Get the frame of the caller
             frame = inspect.stack()[1]
             module = inspect.getmodule(frame[0])
             name = module.__name__ if module else 'root'
         
         self.logger = logging.getLogger(name)
+        config = self._get_config()
 
-        from config import Config
         # Use formats from Config if they exist, otherwise fall back to default formats
-        debug_format = logging.Formatter(getattr(Config, 'LOGGER_FORMAT_DEBUG', self.DEFAULT_FORMAT_DEBUG))
-        info_format = logging.Formatter(getattr(Config, 'LOGGER_FORMAT_INFO', self.DEFAULT_FORMAT_INFO))
-        warning_format = logging.Formatter(getattr(Config, 'LOGGER_FORMAT_WARNING', self.DEFAULT_FORMAT_WARNING))
-        error_format = logging.Formatter(getattr(Config, 'LOGGER_FORMAT_ERROR', self.DEFAULT_FORMAT_ERROR))
+        debug_format = logging.Formatter(getattr(config, 'LOGGER_FORMAT_DEBUG', self.DEFAULT_FORMAT_DEBUG))
+        info_format = logging.Formatter(getattr(config, 'LOGGER_FORMAT_INFO', self.DEFAULT_FORMAT_INFO))
+        warning_format = logging.Formatter(getattr(config, 'LOGGER_FORMAT_WARNING', self.DEFAULT_FORMAT_WARNING))
+        error_format = logging.Formatter(getattr(config, 'LOGGER_FORMAT_ERROR', self.DEFAULT_FORMAT_ERROR))
         
         formatter = LevelBasedFormatter({
             logging.DEBUG: debug_format,
@@ -90,15 +90,27 @@ class Logger:
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
-        self.logger.setLevel(DEFAULT_LOG_LEVEL)
+        self.logger.setLevel(getattr(config, 'LOG_LEVEL', self.DEFAULT_LOG_LEVEL))
         self.logger.propagate = False
 
+    def _get_config(self):
+        """
+        Try to import Config from the config module. 
+        Return a dummy class with default values if Config is not available.
+        """
+        try:
+            from config import Config
+            return Config
+        except ImportError:
+            class DefaultConfig:
+                pass
+            return DefaultConfig
+
     def setLevel(self, level=None):
-        # Import Config here to avoid circular import
-        from config import Config
+        config = self._get_config()
 
         if level is None:
-            level = getattr(Config, 'LOG_LEVEL', DEFAULT_LOG_LEVEL)
+            level = getattr(config, 'LOG_LEVEL', self.DEFAULT_LOG_LEVEL)
 
         self.logger.setLevel(level)
 
