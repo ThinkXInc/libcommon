@@ -126,20 +126,28 @@ class Logger:
         finally:
             del frame
 
-    def debug(self, message):
-        function_name, lineno = self._get_caller_details()
-        self.logger.debug(f"[{function_name}:{lineno}] {message}")
+    def _format_message(self, message, simple):
+        if simple:
+            return f"{message}"
+        else:
+            function_name, lineno = self._get_caller_details()
+            return f"[{function_name}:{lineno}] {message}"
 
-    def info(self, message):
-        self.logger.info(message)
+    def debug(self, message, simple=False):
+        formatted_message = self._format_message(message, simple)
+        self.logger.debug(formatted_message)
 
-    def warning(self, message):
-        function_name, lineno = self._get_caller_details()
-        self.logger.warning(f"[{function_name}:{lineno}] {message}")
+    def info(self, message, simple=False):
+        formatted_message = self._format_message(message, simple)
+        self.logger.info(formatted_message)
 
-    def error(self, message):
-        function_name, lineno = self._get_caller_details()
-        self.logger.error(f"[{function_name}:{lineno}] {message}")
+    def warning(self, message, simple=False):
+        formatted_message = self._format_message(message, simple)
+        self.logger.warning(formatted_message)
+
+    def error(self, message, simple=False):
+        formatted_message = self._format_message(message, simple)
+        self.logger.error(formatted_message)
 
     @property
     def DEBUG(self):
