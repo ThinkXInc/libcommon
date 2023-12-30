@@ -16,6 +16,7 @@ class color:
     light_magenta = '\033[95m'
     light_cyan = '\033[96m'
     light_white = '\033[97m'
+    purple = '\033[35m'  # Added purple color
     end = '\033[0m'
     bold = '\033[1m'
     underline = '\033[4m'
@@ -37,6 +38,9 @@ def orange(string):
 
 def blue(string):
     return f"{color.blue}{string}{color.end}"
+
+def purple(string):
+    return f"{color.purple}{string}{color.end}"
 
 def magenta(string):
     return f"{color.magenta}{string}{color.end}"
