@@ -15,7 +15,9 @@ from libcommon.vector_database.sentence_encoder import SentenceEncoder
 # Logger
 from libcommon.logger import Logger
 logger = Logger('VectorDatabase')
-logger.setLevel(logger.DEBUG)
+logger_ = Logger('VectorDatabase_', simple=True)
+logger.setLevel(logger.INFO)
+logger_.setLevel(logger.INFO)
 from libcommon.color import *
 
 class CollectionOptions(BaseModel):

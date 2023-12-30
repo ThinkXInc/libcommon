@@ -64,7 +64,7 @@ class Logger:
     DEFAULT_FORMAT_ERROR = '[ERROR] [%(asctime)s] [%(name)s] %(message)s'
     DEFAULT_LOG_LEVEL = logging.INFO
 
-    def __init__(self, name: str = None):
+    def __init__(self, name: str = None, simple: bool = False):
         if name is None:
             frame = inspect.stack()[1]
             module = inspect.getmodule(frame[0])
@@ -74,11 +74,18 @@ class Logger:
         config = self._get_config()
 
         # Use formats from Config if they exist, otherwise fall back to default formats
-        debug_format = logging.Formatter(getattr(config, 'LOGGER_FORMAT_DEBUG', self.DEFAULT_FORMAT_DEBUG))
-        info_format = logging.Formatter(getattr(config, 'LOGGER_FORMAT_INFO', self.DEFAULT_FORMAT_INFO))
-        warning_format = logging.Formatter(getattr(config, 'LOGGER_FORMAT_WARNING', self.DEFAULT_FORMAT_WARNING))
-        error_format = logging.Formatter(getattr(config, 'LOGGER_FORMAT_ERROR', self.DEFAULT_FORMAT_ERROR))
-        
+        if simple:
+            # Define simple formats without module name
+            debug_format = logging.Formatter('%(message)s')
+            info_format = logging.Formatter('%(message)s')
+            warning_format = logging.Formatter('[WARNING] %(message)s')
+            error_format = logging.Formatter('[ERROR] %(asctime)s %(message)s')
+        else:
+            debug_format = logging.Formatter(getattr(config, 'LOGGER_FORMAT_DEBUG', self.DEFAULT_FORMAT_DEBUG))
+            info_format = logging.Formatter(getattr(config, 'LOGGER_FORMAT_INFO', self.DEFAULT_FORMAT_INFO))
+            warning_format = logging.Formatter(getattr(config, 'LOGGER_FORMAT_WARNING', self.DEFAULT_FORMAT_WARNING))
+            error_format = logging.Formatter(getattr(config, 'LOGGER_FORMAT_ERROR', self.DEFAULT_FORMAT_ERROR))
+
         formatter = LevelBasedFormatter({
             logging.DEBUG: debug_format,
             logging.INFO: info_format,
@@ -126,28 +133,17 @@ class Logger:
         finally:
             del frame
 
-    def _format_message(self, message, simple):
-        if simple:
-            return f"{message}"
-        else:
-            function_name, lineno = self._get_caller_details()
-            return f"[{function_name}:{lineno}] {message}"
+    def debug(self, message):
+        self.logger.debug(message)
 
-    def debug(self, message, simple=False):
-        formatted_message = self._format_message(message, simple)
-        self.logger.debug(formatted_message)
+    def info(self, message):
+        self.logger.info(message)
 
-    def info(self, message, simple=False):
-        formatted_message = self._format_message(message, simple)
-        self.logger.info(formatted_message)
+    def warning(self, message):
+        self.logger.warning(message)
 
-    def warning(self, message, simple=False):
-        formatted_message = self._format_message(message, simple)
-        self.logger.warning(formatted_message)
-
-    def error(self, message, simple=False):
-        formatted_message = self._format_message(message, simple)
-        self.logger.error(formatted_message)
+    def error(self, message):
+        self.logger.error(message)
 
     @property
     def DEBUG(self):
