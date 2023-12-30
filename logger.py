@@ -58,8 +58,8 @@ class Logger:
     """
 
     # Default log formats
-    DEFAULT_FORMAT_DEBUG = '[%(levelname)s] [%(name)s] %(message)s'
-    DEFAULT_FORMAT_INFO = '%(message)s'
+    DEFAULT_FORMAT_DEBUG = '[%(name)s] %(message)s'
+    DEFAULT_FORMAT_INFO = '[%(name)s] %(message)s'
     DEFAULT_FORMAT_WARNING = '[WARNING] [%(name)s] %(message)s'
     DEFAULT_FORMAT_ERROR = '[ERROR] [%(asctime)s] [%(name)s] %(message)s'
     DEFAULT_LOG_LEVEL = logging.INFO
