@@ -12,11 +12,11 @@ from qdrant_client.models import Distance, PointStruct, VectorParams, FieldCondi
 
 from libcommon.vector_database.sentence_encoder import SentenceEncoder
 
-from libcommon.color import bold, cyan, magenta, yellow, green, red
- 
+# Logger
 from libcommon.logger import Logger
 logger = Logger('VectorDatabase')
 logger.setLevel(logger.DEBUG)
+from libcommon.color import *
 
 class CollectionOptions(BaseModel):
     """
