@@ -283,7 +283,7 @@ class VectorDatabase:
             vector=r.vector if r.vector else []  # Use an empty list if vector is None
         ) for r in results]
 
-        logger.info(cyan(f'{len(documents)} documents found.'))
+        logger.info(cyan(f'{len(documents)} documents found by query:{text}'))
 
         return documents
 
