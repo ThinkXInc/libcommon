@@ -55,9 +55,9 @@ class RedisSessionInterface(SessionInterface):
     session_class = RedisSession
 
     pool = redis.ConnectionPool(
-        host=Config.REDIS_HOST_SESSION,
-        port=Config.REDIS_PORT_SESSION,
-        db=Config.REDIS_DB_NUMBER_SESSION
+        host=Config.REDIS_SESSION_HOST,
+        port=Config.REDIS_SESSION_PORT,
+        db=Config.REDIS_SESSION_DB_NUMBER
     )
     __redis = Redis(connection_pool=pool)
 
@@ -193,9 +193,9 @@ class Session:
     SESSION_KEY = 'user_id'
 
     pool = redis.ConnectionPool(
-        host=Config.REDIS_HOST_SESSION,
-        port=Config.REDIS_PORT_SESSION,
-        db=Config.REDIS_DB_NUMBER_SESSION
+        host=Config.REDIS_SESSION_HOST,
+        port=Config.REDIS_SESSION_PORT,
+        db=Config.REDIS_SESSION_DB_NUMBER
     )
     __redis = StrictRedis(connection_pool=pool)
 
@@ -205,9 +205,9 @@ class Session:
     # @classmethod
     # def _client(cls):
     #     _client = StrictRedis(
-    #         host=Config.REDIS_HOST_SESSION,
-    #         port=Config.REDIS_PORT_SESSION,
-    #         db=Config.REDIS_DB_NUMBER_SESSION)
+    #         host=Config.REDIS_SESSION_HOST,
+    #         port=Config.REDIS_SESSION_PORT,
+    #         db=Config.REDIS_SESSION_DB_NUMBER)
     #     return _client
 
     @classmethod

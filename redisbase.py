@@ -95,9 +95,9 @@ class RedisBase(ModelBase):
     __redis_data_type__ = None
     __expiration_days__ = None
     __expiration_hours__ = None
-    __redis_host__ = Config.REDIS_HOST_SESSION
-    __redis_port__ = Config.REDIS_PORT_SESSION
-    __redis_db__ = Config.REDIS_DB_NUMBER_SESSION
+    __redis_host__ = Config.REDIS_SESSION_HOST
+    __redis_port__ = Config.REDIS_SESSION_PORT
+    __redis_db__ = Config.REDIS_SESSION_DB_NUMBER
     __redis_decode_responses__ = True  # return str, not binary in default
 
     # set up redis client
