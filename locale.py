@@ -1,6 +1,3 @@
-#!/usr/local/bin/python
-# -*- coding:utf-8 -*-
-
 # api/helpers/locale.py
 
 # Locale class loads and manages locale-specific data from JSON files.
@@ -26,15 +23,32 @@
 #     },
 #     ...
 # }
-
 import os
-import logging
 import json
-from config import Config
+from pathlib import Path
 from typing import List, Union
 from libcommon.language import Language
 
-LOCALES_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'locales')
+# Set logger
+from libcommon.logger import Logger
+from libcommon.color import *
+
+logger = Logger('Locale')
+logger.setLevel(logger.DEBUG)
+
+from config import Config, check_config
+# Check if all keys and values are satisfied
+REQUIRED_KEYS = [
+    'DEFAULT_LANG',
+]
+check_config(Config, REQUIRED_KEYS)
+
+COMMON_LOCALES_ROOT = (Path(__file__).parent / 'locales').absolute()
+COMMON_LOCALES_FILE_PATHS = [
+    f'{COMMON_LOCALES_ROOT}/api_response.json',
+    f'{COMMON_LOCALES_ROOT}/errors.json',
+    f'{COMMON_LOCALES_ROOT}/validation_errors.json',
+]
 
 class Locale:
     """
@@ -61,18 +75,17 @@ class Locale:
     __file_paths__: List[str] = []
     __dict__: dict = {}
 
-    def __init__(self, file_paths: Union[str, List[str]], locales_root = LOCALES_ROOT):
+    def __init__(self, file_paths: Union[str, List[str]]):
         """
         Initializes a new instance of the Locale class.
         """
         self.__file_paths__ = []
         file_paths = file_paths if isinstance(file_paths, list) else [file_paths]
 
+        logger.info(cyan(f'Locale object initialized with file paths {file_paths}'))
+
         for file_path in file_paths:
-            if '/' in file_path:
-                self.__file_paths__.append(file_path)
-            else:
-                self.__file_paths__.append(os.path.join(locales_root, file_path))
+            self.__file_paths__.append(file_path)
 
         self.__dict__ = self.load_files(self.__file_paths__)
 
@@ -122,7 +135,7 @@ class Locale:
                     raise ValueError(f'${i} not in the message:{m}')
                 m = m.replace(f'${i}', arg)
 
-        logging.debug(f'Error message generated for key:{key} lang:{lang} as {m}')
+        logger.debug(f'Error message generated for key: {key} lang: {lang} as {m}')
         return m
 
     def json(self):
@@ -167,7 +180,7 @@ class Locale:
         https://xxx.com/aa/?lang=ja
 
         if "?lang={}" doesn't exist in url, 
-        Config.DEFAULT_LANGUAGE is used.
+        Config.DEFAULT_LANG is used.
 
         args:
             - request (Flask Request Object)
@@ -178,5 +191,5 @@ class Locale:
         """
         lang = request.args.get('lang') \
             if Language.is_valid_value(request.args.get('lang')) \
-            else Config.DEFAULT_LANGUAGE
+            else Config.DEFAULT_LANG
         return lang

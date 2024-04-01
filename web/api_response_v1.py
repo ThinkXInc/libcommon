@@ -43,10 +43,10 @@ sys.path.append('../')
 from typing import List, Optional
 from libcommon.locale import Locale
 from libcommon.modelbase import ModelBase
-from libcommon.enumlocale import EnumLocale
+from enum import Enum
 
 
-class SuccessCode(EnumLocale):
+class SuccessCode(Enum):
     OK = 200
     CREATED = 201
     ACCEPTED = 202
@@ -54,7 +54,7 @@ class SuccessCode(EnumLocale):
     NO_CONTENT = 204  # The server successfully processed the request, and is not returning any content.
 
 
-class ErrorCode(EnumLocale):
+class ErrorCode(Enum):
     # 4xx
     BAD_REQUEST = 400
     UNAUTHORIZED = 401

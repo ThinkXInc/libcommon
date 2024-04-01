@@ -1,5 +1,5 @@
 {
-    "processing_error": {
+    "unexpected_error": {
         "en": "An error occurred while processing your request.",
         "ja": "リクエストの処理中にエラーが発生しました。",
         "zh": "处理您的请求时发生错误。",

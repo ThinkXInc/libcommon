@@ -24,20 +24,32 @@
 # Session.clear()
 # Session.count(_id)
 #
-
-
-import logging
 import msgpack
 from datetime import timedelta
 from uuid import uuid4
-
 import redis
 from flask import session
 from flask.sessions import SessionInterface, SessionMixin
 from redis import StrictRedis, Redis
 from werkzeug.datastructures import CallbackDict
 
-from config import Config
+# logger
+from libcommon.logger import Logger
+logger = Logger()
+logger.setLevel(logger.DEBUG)
+from libcommon.color import *
+
+from config import Config, check_config
+
+REDIS_SESSION_REQUIRED_KEYS = [
+    'REDIS_SESSION_HOST',
+    'REDIS_SESSION_PORT',
+    'REDIS_SESSION_DB_NUMBER',
+    'REDIS_SESSION_EXPIRATION_PERIOD'
+]
+
+# Check if all keys and values are satisfied
+check_config(Config, REDIS_SESSION_REQUIRED_KEYS)
 
 class RedisSession(CallbackDict, SessionMixin):
     def __init__(self, initial=None, sid=None, new=False):
@@ -49,20 +61,27 @@ class RedisSession(CallbackDict, SessionMixin):
     def on_update(self):
         self.modified = True
 
-
 class RedisSessionInterface(SessionInterface):
-    serializer = msgpack
-    session_class = RedisSession
-
-    pool = redis.ConnectionPool(
-        host=Config.REDIS_SESSION_HOST,
-        port=Config.REDIS_SESSION_PORT,
-        db=Config.REDIS_SESSION_DB_NUMBER
-    )
-    __redis = Redis(connection_pool=pool)
-
     def __init__(self, prefix='session:'):
         self.prefix = prefix
+
+        self.serializer = msgpack
+        self.session_class = RedisSession
+
+        logger.info(magenta('Initializing Redis for session...'))
+        self.pool = redis.ConnectionPool(
+            host=Config.REDIS_SESSION_HOST,
+            port=Config.REDIS_SESSION_PORT,
+            db=Config.REDIS_SESSION_DB_NUMBER
+        )
+        self.__redis = Redis(connection_pool=self.pool)
+
+        # Check if Redis is running by executing a simple command
+        try:
+            self.__redis.ping()
+            logger.info(green("Successfully connected to Redis."))
+        except (redis.ConnectionError, redis.TimeoutError) as e:
+            logger.error("Failed to connect to Redis: {}".format(e))
 
     def generate_session_id(self):
         """Generate session id
@@ -90,7 +109,7 @@ class RedisSessionInterface(SessionInterface):
         return the session object with saved data in redis.
         """
         if self.serializer is None:
-            logging.warning(f'[WARNING] No serializer found in RedisSessionInterface.')
+            logger.warning(f'[WARNING] No serializer found in RedisSessionInterface.')
             return None
         session_cookie_name = app.config.get('SESSION_COOKIE_NAME')
         session_id = request.cookies.get(session_cookie_name)
@@ -103,7 +122,7 @@ class RedisSessionInterface(SessionInterface):
                 data = self.serializer.loads(val, raw=False)
                 return self.session_class(data, sid=session_id)
         except redis.RedisError as e:
-            logging.error(f'Failed to open session: {e}')
+            logger.error(f'Failed to open session: {e}')
             raise
 
         return self.session_class(sid=session_id, new=True)
@@ -117,145 +136,104 @@ class RedisSessionInterface(SessionInterface):
         ------------------------------------------------
         """
         domain = self.get_cookie_domain(app)
+
         if not session:
             try:
                 self.__redis.delete(self.prefix + session.sid)
             except redis.RedisError as e:
-                logging.error(f'Failed to delete session: {e}')
+                logger.error(f'Failed to delete session: {e}')
                 raise
             if session.modified:
+                logger.debug("Session modified and empty, deleting session cookie.")
                 response.delete_cookie(app.session_cookie_name,
                                        domain=domain)
             return
-        redis_exp = self.get_redis_expiration_time(app, session)
+
         cookie_exp = self.get_expiration_time(app, session)
+        redis_exp = self.get_redis_expiration_time(app, session)
         try:
             val = self.serializer.dumps(dict(session), use_bin_type=True)
             self.__redis.setex(self.prefix + session.sid,
                                int(redis_exp.total_seconds()),
                                val)
+            logger.info(f"Session {session.sid} saved to Redis.")
         except redis.RedisError as e:
-            logging.error(f'Failed to save session: {e}')
+            logger.error(f'Failed to save session: {e}')
             raise
         response.set_cookie(app.session_cookie_name, session.sid,
                             expires=cookie_exp, httponly=True,
                             domain=domain)
-
-
-# TODO:
-# Will migrate to use flask.Session
-#
-# app = Flask(__name__)
-# # Check Configuration section for more details
-# SESSION_TYPE = 'redis'
-# app.config.from_object(__name__)
-# Session(app)
-# 
-# @app.route('/set/')
-# def set():
-#     session['key'] = 'value'
-#     return 'ok'
-# 
-# @app.route('/get/')
-# def get():
-#     return session.get('key', 'not set')
-#
-# session['user'] = {
-#     'user_id': 123,
-#     # other individual user attributes...
-# }
-# session['organization'] = {
-#     'user_id': 456,
-#     'access_count': 3,
-#     ...
-# }
-#
-# OR
-#
-# class UserSession(ModelBase):
-#   __key__ = 'user_session'
-#   __structure__ = {
-#     _id: ObjectId, 
-#     access_count: int,
-#     ...
-#   }
-#
-# # save session
-# session[UserSession.__key__] = UserSession(user_id=123, access_count=1).serialize()
-#
-# # remove session
-# session[UserSession.__key__] = None
-#
 
 class Session:
     SESSION_PREFIX = 'session:'
     SESSIONS_PREFIX = 'sessions:'
     SESSION_KEY = 'user_id'
 
-    pool = redis.ConnectionPool(
-        host=Config.REDIS_SESSION_HOST,
-        port=Config.REDIS_SESSION_PORT,
-        db=Config.REDIS_SESSION_DB_NUMBER
-    )
-    __redis = StrictRedis(connection_pool=pool)
-
     def __init__(self):
-        pass
-
-    # @classmethod
-    # def _client(cls):
-    #     _client = StrictRedis(
-    #         host=Config.REDIS_SESSION_HOST,
-    #         port=Config.REDIS_SESSION_PORT,
-    #         db=Config.REDIS_SESSION_DB_NUMBER)
-    #     return _client
+        self.pool = redis.ConnectionPool(
+            host=Config.REDIS_SESSION_HOST,
+            port=Config.REDIS_SESSION_PORT,
+            db=Config.REDIS_SESSION_DB_NUMBER
+        )
+        self.__redis = StrictRedis(connection_pool=RedisSessionInterface.pool)
 
     @classmethod
     def user_id(cls) -> int:
         """Get user_id from session.
-
-        returns:
-            - user_id (int) : If no session, return None.
         """
-        return session.get(cls.SESSION_KEY)
+        user_id = session.get(cls.SESSION_KEY)
+        if user_id:
+            logger.debug(f"User ID retrieved from session: {user_id}")
+        else:
+            logger.debug("No user ID found in session.")
+        return user_id
 
     @classmethod
     def exists_session(cls):
-        """Return if session exists.
-        """
-        return cls.SESSION_KEY in session
+        """Check if a user session exists."""
+        exists = cls.SESSION_KEY in session
+        logger.debug(f"Session exists: {exists}")
+        return exists
 
     @classmethod
     def start(cls, user_id: int) -> None:
         """Save user session.
+
+        Allow a single user to have multiple simultaneous sessions.
+
         -SET sessions:{user_id} ----------------------------
         | 6b48dfa3-83b5-4a05-bb31-08eddb701984 (sid)
         | 428d897d-19ae-4881-a086-df625957c5db (sid)
         | 2a7356cb-8a41-47e3-b165-40690cac740c (sid)
         ----------------------------------------------------
+
         args:
             - user_id (int) : 
         """
-
-        # redisにsessionがない場合なりすまし防止の為にcookieから取得したsessionを使用せずに再生成する
-        Session.clear()
-        session.sid = str(uuid4())
-        print(session)
-        session[cls.SESSION_KEY] = user_id
-
-        sessions_key = '{}{}'.format(
-            Session.SESSIONS_PREFIX, user_id)
-        print(sessions_key)
-        print(session.sid)
-        Session.__redis.sadd(sessions_key, session.sid)
+        try:
+            # redisにsessionがない場合なりすまし防止の為にcookieから取得したsessionを使用せずに再生成する
+            cls.clear()  # Clear any existing session data first
+            session[cls.SESSION_KEY] = user_id
+            session.sid = str(uuid4())
+            sessions_key = f'{cls.SESSIONS_PREFIX}{user_id}'
+            cls.__redis.sadd(sessions_key, session.sid)
+            logger.info(f"Session started for user {user_id} with session ID {session.sid}.")
+        except redis.RedisError as e:
+            logger.error(f"Error starting session for user {user_id}: {e}")
 
     @staticmethod
     def clear() -> None:
-        """Clear session.
-        """
-        Session.__redis.delete(Session.SESSIONS_PREFIX + str(Session.user_id()))
-        Session.__redis.delete(Session.SESSION_PREFIX + session.sid)
-        session.clear()
+        """Clear the current session data from Redis."""
+        user_id = Session.user_id()
+        if user_id:
+            try:
+                sessions_key = f'{Session.SESSIONS_PREFIX}{user_id}'
+                Session.__redis.delete(sessions_key)
+                Session.__redis.delete(Session.SESSION_PREFIX + session.sid)
+                session.clear()
+                logger.info(f"Session cleared for user {user_id}.")
+            except redis.RedisError as e:
+                logger.error(f"Error clearing session for user {user_id}: {e}")
 
     @classmethod
     def count(cls, user_id: int) -> int:
@@ -265,34 +243,20 @@ class Session:
         Returns:
             count: int  # access count
         """
-        logging.debug('count sessions for {}:{}'.format(cls.SESSION_KEY, user_id))
+        logger.debug('count sessions for {}:{}'.format(cls.SESSION_KEY, user_id))
 
-        sessions_key = '{}{}'.format(
-            Session.SESSIONS_PREFIX, user_id)
-        user_sids = Session.__redis.smembers(sessions_key)
-
-        # count session in redis
-        if len(user_sids) == 0:
-            # no session found
-            logging.debug('no session found')
-            return 0
-        else:
-            logging.debug('session found')
-            sids = set()
+        sessions_key = f'{cls.SESSIONS_PREFIX}{user_id}'
+        try:
+            user_sids = cls.__redis.smembers(sessions_key)
+            count = 0
             for user_sid in user_sids:
                 user_sid = user_sid.decode()
-                # if session:{sid} in session, count it
-                if Session.__redis.exists(Session.SESSION_PREFIX +
-                                                  user_sid):
-                    sids.add(user_sid)
+                if cls.__redis.exists(cls.SESSION_PREFIX + user_sid):
+                    count += 1
                 else:
-                    # if session:{sid} doesn't exist,
-                    # remove the sid from sessions:
-                    Session.__redis.srem(
-                        sessions_key,
-                        user_sid)
-
-            count = len(sids)
-            logging.debug(
-                '{} session found for user {}'.format(count, user_id))
+                    cls.__redis.srem(sessions_key, user_sid)
+            logger.info(f"Active session count for user {user_id}: {count}")
             return count
+        except redis.RedisError as e:
+            logger.error(f"Error counting sessions for user {user_id}: {e}")
+            return 0
