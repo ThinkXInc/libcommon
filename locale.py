@@ -82,7 +82,7 @@ class Locale:
         self.__file_paths__ = []
         file_paths = file_paths if isinstance(file_paths, list) else [file_paths]
 
-        logger.info(cyan(f'Locale object initialized with file paths {file_paths}'))
+        logger.debug(light_green(f'Locale object initialized with file paths {file_paths}'))
 
         for file_path in file_paths:
             self.__file_paths__.append(file_path)
@@ -135,7 +135,7 @@ class Locale:
                     raise ValueError(f'${i} not in the message:{m}')
                 m = m.replace(f'${i}', arg)
 
-        logger.debug(f'Error message generated for key: {key} lang: {lang} as {m}')
+        logger.debug(f'locale generated message -> "{m}" (key: {key} lang: {lang}) ')
         return m
 
     def json(self):

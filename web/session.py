@@ -33,13 +33,15 @@ from flask.sessions import SessionInterface, SessionMixin
 from redis import StrictRedis, Redis
 from werkzeug.datastructures import CallbackDict
 
+from config import Config, check_config
+
 # logger
 from libcommon.logger import Logger
-logger = Logger()
-logger.setLevel(logger.DEBUG)
 from libcommon.color import *
 
-from config import Config, check_config
+logger = Logger()
+logger.setLevel(logger.DEBUG)
+
 
 REDIS_SESSION_REQUIRED_KEYS = [
     'REDIS_SESSION_HOST',
@@ -81,7 +83,7 @@ class RedisSessionInterface(SessionInterface):
             self.__redis.ping()
             logger.info(green("Successfully connected to Redis."))
         except (redis.ConnectionError, redis.TimeoutError) as e:
-            logger.error("Failed to connect to Redis: {}".format(e))
+            logger.error(red("Failed to connect to Redis: {}".format(e)))
 
     def generate_session_id(self):
         """Generate session id
@@ -122,7 +124,7 @@ class RedisSessionInterface(SessionInterface):
                 data = self.serializer.loads(val, raw=False)
                 return self.session_class(data, sid=session_id)
         except redis.RedisError as e:
-            logger.error(f'Failed to open session: {e}')
+            logger.error(red(f'Failed to open session: {e}'))
             raise
 
         return self.session_class(sid=session_id, new=True)
@@ -141,7 +143,7 @@ class RedisSessionInterface(SessionInterface):
             try:
                 self.__redis.delete(self.prefix + session.sid)
             except redis.RedisError as e:
-                logger.error(f'Failed to delete session: {e}')
+                logger.error(red(f'Failed to delete session: {e}'))
                 raise
             if session.modified:
                 logger.debug("Session modified and empty, deleting session cookie.")
@@ -151,16 +153,19 @@ class RedisSessionInterface(SessionInterface):
 
         cookie_exp = self.get_expiration_time(app, session)
         redis_exp = self.get_redis_expiration_time(app, session)
+        session_cookie_name = app.config.get('SESSION_COOKIE_NAME', 'session')
+
         try:
             val = self.serializer.dumps(dict(session), use_bin_type=True)
             self.__redis.setex(self.prefix + session.sid,
                                int(redis_exp.total_seconds()),
                                val)
-            logger.info(f"Session {session.sid} saved to Redis.")
+            logger.info(cyan(f"Session {session.sid} saved to Redis."))
         except redis.RedisError as e:
-            logger.error(f'Failed to save session: {e}')
+            logger.error(red(f'Failed to save session: {e}'))
             raise
-        response.set_cookie(app.session_cookie_name, session.sid,
+
+        response.set_cookie(session_cookie_name, session.sid,
                             expires=cookie_exp, httponly=True,
                             domain=domain)
 
@@ -169,13 +174,13 @@ class Session:
     SESSIONS_PREFIX = 'sessions:'
     SESSION_KEY = 'user_id'
 
-    def __init__(self):
-        self.pool = redis.ConnectionPool(
-            host=Config.REDIS_SESSION_HOST,
-            port=Config.REDIS_SESSION_PORT,
-            db=Config.REDIS_SESSION_DB_NUMBER
-        )
-        self.__redis = StrictRedis(connection_pool=RedisSessionInterface.pool)
+    # Define __redis as a class attribute
+    redis_pool = redis.ConnectionPool(
+        host=Config.REDIS_SESSION_HOST,
+        port=Config.REDIS_SESSION_PORT,
+        db=Config.REDIS_SESSION_DB_NUMBER
+    )
+    __redis = StrictRedis(connection_pool=redis_pool)
 
     @classmethod
     def user_id(cls) -> int:
@@ -217,9 +222,9 @@ class Session:
             session.sid = str(uuid4())
             sessions_key = f'{cls.SESSIONS_PREFIX}{user_id}'
             cls.__redis.sadd(sessions_key, session.sid)
-            logger.info(f"Session started for user {user_id} with session ID {session.sid}.")
+            logger.info(cyan(f"Session started for user {user_id} with session ID {session.sid}."))
         except redis.RedisError as e:
-            logger.error(f"Error starting session for user {user_id}: {e}")
+            logger.error(red(f"Error starting session for user {user_id}: {e}"))
 
     @staticmethod
     def clear() -> None:
@@ -231,9 +236,9 @@ class Session:
                 Session.__redis.delete(sessions_key)
                 Session.__redis.delete(Session.SESSION_PREFIX + session.sid)
                 session.clear()
-                logger.info(f"Session cleared for user {user_id}.")
+                logger.info(light_green(f"Session cleared for user {user_id}."))
             except redis.RedisError as e:
-                logger.error(f"Error clearing session for user {user_id}: {e}")
+                logger.error(red(f"Error clearing session for user {user_id}: {e}"))
 
     @classmethod
     def count(cls, user_id: int) -> int:
@@ -255,7 +260,7 @@ class Session:
                     count += 1
                 else:
                     cls.__redis.srem(sessions_key, user_sid)
-            logger.info(f"Active session count for user {user_id}: {count}")
+            logger.info(bold(f"Active session count for user {user_id}: {count}"))
             return count
         except redis.RedisError as e:
             logger.error(f"Error counting sessions for user {user_id}: {e}")

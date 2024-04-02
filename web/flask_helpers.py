@@ -1,9 +1,16 @@
+# libcommon/web/flask_helpers.py
 from typing import Optional
 from flask import request, g
 from functools import wraps, partial
+
 from config import Config, check_config
+from models.data.user import User, UnauthorizedAccessError, UserNotFoundError
+
 from libcommon.language import Language
 from libcommon.locale import Locale
+from libcommon.validator import Validator, ValidationType
+
+from libcommon.web.session import Session
 from libcommon.web.http_response_formatter import ValidationErrorFormat, ValidationErrorsFormat
 from libcommon.web.http_errors import InvalidContentTypeAPIErrorFormat, \
 UnexpectedAPIErrorFormat, ForbiddenAPIErrorFormat, ResourceNotFoundAPIErrorFormat, \
@@ -12,6 +19,7 @@ BadRequestAPIErrorFormat, UnauthorizedAPIErrorFormat, RateLimitExceededAPIErrorF
 # Set logger
 from libcommon.logger import Logger
 from libcommon.color import *
+
 logger = Logger()
 logger.setLevel(logger.DEBUG)
 
@@ -44,6 +52,7 @@ def language_wrapper(func):
 
         return func(*args, **kwargs)
     return decorated_function
+
 def content_type_check_json(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -80,7 +89,7 @@ def required_fields_check(required_fields):
         return wrapper
     return decorator
 
-def handle_invalid_request_error(lang, locale) -> Optional[ValidationErrorFormat]:
+def validate_request(lang, locale) -> Optional[ValidationErrorFormat]:
     errors = g.get('errors', [])
     if errors:
         return ValidationErrorsFormat(
@@ -95,7 +104,36 @@ def handle_error(error, error_class):
     def inner_handle_error(*args, **kwargs):
         lang = kwargs.get('lang', DEFAULT_LANG)  # Now dynamic
         error_instance = error_class(lang=lang, field_name='')
-        logger.error(f"Unexpected {error_class.__name__} '{error_instance.message}'")
+        logger.error(red(f"{error_class.__name__} '{error_instance.message}'"))
         return error_instance.http_response()
     return inner_handle_error(error)
 
+def session_helper(f):
+    """
+
+    Additionally, add error handlers in the Flask app instance.
+
+        @app.errorhandler(UnauthorizedAccessError)
+        def handle_unauthorized_access(error):
+            return UnauthorizedAPIErrorFormat(lang=Config.DEFAULT_LANG, message=str(error)).http_response()
+
+        @app.errorhandler(UserNotFoundError)
+        def handle_user_not_found(error):
+            return UnauthorizedAPIErrorFormat(lang=Config.DEFAULT_LANG, message=str(error)).http_response()
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = Session.user_id()
+        if not user_id:
+            logger.error(red('No user ID found in session.'))
+            raise UnauthorizedAccessError("User must be logged in to access this resource.")
+
+        user = User.objects(id=user_id).first()
+        if not user:
+            logger.error(red(f'User not found with ID: {user_id}'))
+            raise UserNotFoundError("User not found.")
+
+        logger.info(green(f'User found: {user.email}'))
+        return f(user=user, *args, **kwargs)
+
+    return decorated_function

@@ -5,35 +5,35 @@ LOCALE_FILE = 'errors.json'  # must be in libcommon/locales/
 
 class UnexpectedAPIErrorFormat(APIErrorFormat):
     def __init__(self, lang: str, field_name: str = '', message: str = None):
-        message = message if message else get_locale_text(LOCALE_FILE, 'upexpected_error', lang)
-        super().__init__(field_name=field_name, code=ErrorCode.INTERNAL_SERVER_ERROR.value, message=message)
+        message = message if message else get_locale_text(LOCALE_FILE, 'unexpected_error', lang)
+        super().__init__(field_name=field_name, code=ErrorCode.INTERNAL_SERVER_ERROR, message=message)
 
 class InvalidContentTypeAPIErrorFormat(APIErrorFormat):
     def __init__(self, lang: str, field_name: str = '', message: str = None):
         message = message if message else get_locale_text(LOCALE_FILE, 'invalid_content_type', lang)
-        super().__init__(field_name=field_name, code=ErrorCode.UNSUPPORTED_MEDIA_TYPE.value, message=message)
+        super().__init__(field_name=field_name, code=ErrorCode.UNSUPPORTED_MEDIA_TYPE, message=message)
 
 class ForbiddenAPIErrorFormat(APIErrorFormat):
     def __init__(self, lang: str, field_name: str = '', message: str = None):
         message = message if message else get_locale_text(LOCALE_FILE, 'forbidden', lang)
-        super().__init__(field_name=field_name, code=ErrorCode.FORBIDDEN.value, message=message)
+        super().__init__(field_name=field_name, code=ErrorCode.FORBIDDEN, message=message)
 
 class ResourceNotFoundAPIErrorFormat(APIErrorFormat):
     def __init__(self, lang: str, field_name: str = '', message: str = None):
         message = message if message else get_locale_text(LOCALE_FILE, 'resource_not_found', lang)
-        super().__init__(field_name=field_name, code=ErrorCode.NOT_FOUND.value, message=message)
+        super().__init__(field_name=field_name, code=ErrorCode.NOT_FOUND, message=message)
 
 class BadRequestAPIErrorFormat(APIErrorFormat):
     def __init__(self, lang: str, field_name: str = '', message: str = None):
         message = message if message else get_locale_text(LOCALE_FILE, 'bad_request', lang)
-        super().__init__(field_name=field_name, code=ErrorCode.BAD_REQUEST.value, message=message)
+        super().__init__(field_name=field_name, code=ErrorCode.BAD_REQUEST, message=message)
 
 class UnauthorizedAPIErrorFormat(APIErrorFormat):
     def __init__(self, lang: str, field_name: str = '', message: str = None):
         message = message if message else get_locale_text(LOCALE_FILE, 'unauthorized', lang)
-        super().__init__(field_name=field_name, code=ErrorCode.UNAUTHORIZED.value, message=message)
+        super().__init__(field_name=field_name, code=ErrorCode.UNAUTHORIZED, message=message)
 
 class RateLimitExceededAPIErrorFormat(APIErrorFormat):
     def __init__(self, lang: str, field_name: str = '', message: str = None):
         message = message if message else get_locale_text(LOCALE_FILE, 'rate_limit_exceeded', lang)
-        super().__init__(field_name=field_name, code=ErrorCode.TOO_MANY_REQUESTS.value, message=message)
+        super().__init__(field_name=field_name, code=ErrorCode.TOO_MANY_REQUESTS, message=message)

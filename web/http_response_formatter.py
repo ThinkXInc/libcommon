@@ -35,7 +35,7 @@ class ErrorCode(Enum):
 # Success
 class SuccessFormat(BaseModel):
     saved_data: Any
-    code: int
+    code: SuccessCode
     message: str
 
     def response_json(self) -> dict:
