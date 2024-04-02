@@ -34,7 +34,7 @@
 #       Class for API success response. It uses SuccessCode for status and locale for the success message.
 #
 #       usage:
-#           return APISuccess(saved_data, 'en').http_response()
+#           return APISuccess(data, 'en').http_response()
 #
 
 import sys
@@ -86,7 +86,7 @@ class SuccessResponse(ResponseBase):
     NOTE: Currently not used. because writing json in each handler is more obvious.
 
     return jsonify({
-        'saved_data': user.response_json(),
+        'data': user.response_json(),
         'user_id': user_id,
         'success': {
             'code': 201,

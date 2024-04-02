@@ -34,13 +34,13 @@ class ErrorCode(Enum):
 
 # Success
 class SuccessFormat(BaseModel):
-    saved_data: Any
+    data: Any
     code: SuccessCode
     message: str
 
     def response_json(self) -> dict:
         return jsonify({
-            'saved_data': self.saved_data,
+            **self.data,
             'code': self.code.value,
             'message': self.message
         })

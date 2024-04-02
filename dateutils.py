@@ -38,7 +38,7 @@ class InvalidISOFormatError(Exception):
             'reason': ErrorCode.INVALID_PARAMETER.name,
             'message': f'{self.iso_formatted_string} is invalid as iso formatted timestamp.'
         })
-        return jsonify({'saved_data': None, 'error': error_response.json()}), 400
+        return jsonify({'data': None, 'error': error_response.json()}), 400
 
     def __str__(self):
         return repr(f'{self.iso_formatted_string} is invalid as iso formatted timestamp.')
