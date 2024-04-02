@@ -38,7 +38,7 @@ class Metadata(BaseModel):
 
 # Ensure collection_name and material_id are provided
 user_identifier = "USER001"
-collection_name = vdb.knowledgebase_collection_name(user_identifier)
+collection_name = vdb.documents_collection_name(user_identifier)
 material_id = str(ObjectId())
 
 

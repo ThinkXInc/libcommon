@@ -56,7 +56,7 @@ vdb = VectorDatabase(
 ### Create a collection if not exist
 ```python
 collection_name = \
-    vdb.knowledgebase_collection_name(user_id)
+    vdb.documents_collection_name(user_id)
 if not vdb.collection_exists(collection_name):
     vdb.create_collection(collection_name=collection_name)
 ```

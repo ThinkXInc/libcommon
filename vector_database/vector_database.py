@@ -84,14 +84,14 @@ class VectorDatabase:
     def chat_history_collection_name(self, user_id):
         return f'{user_id}_chats'
 
-    def knowledgebase_collection_name(self, user_id):
+    def documents_collection_name(self, user_id):
         return f'{user_id}_documents'
 
     def create_collection(
             self,
             collection_name: str,
             collection_config: Dict = None,
-            recreate: bool = False
+            should_reset_if_already_exist: bool = False
     ) -> None:
         """Creates the collection in the Qdrant database.
 
@@ -100,10 +100,10 @@ class VectorDatabase:
             collection_config (dict): Dictionary specifying collection configuration, including the vector
                 configuration. For more information, refer to https://qdrant.tech/documentation/concepts/collections/
                 for a detailed explanation of options.
-            recreate (bool, optional): Whether to delete and re-create the collection if it already exists.
+            should_reset_if_already_exist (bool, optional): Whether to delete and re-create the collection if it already exists.
                 (Default = False)
         """
-        if not recreate:
+        if not should_reset_if_already_exist:
             if self.collection_exists(collection_name):
                 # Collection already exists, continue
                 logger.warning(
@@ -120,7 +120,7 @@ class VectorDatabase:
                      f'(size={self.embedding_dim}, distance=Distance.COSINE)')
 
         # Create collection
-        if recreate:
+        if should_reset_if_already_exist:
             self.client.recreate_collection(collection_name, vectors_config=vector_params, **collection_config)
             logger.info(f'Recreated collection {collection_name}')
         else:
