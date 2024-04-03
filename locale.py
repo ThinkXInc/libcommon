@@ -34,7 +34,7 @@ from libcommon.logger import Logger
 from libcommon.color import *
 
 logger = Logger('Locale')
-logger.setLevel(logger.DEBUG)
+logger.setLevel(logger.INFO)
 
 from config import Config, check_config
 # Check if all keys and values are satisfied

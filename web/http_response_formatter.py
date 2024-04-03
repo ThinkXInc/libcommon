@@ -68,7 +68,7 @@ class APIErrorFormat(BaseModel):
 # Validation Error
 class ValidationErrorFormat(BaseModel):
     field_name: str
-    value: str
+    value: Optional[str]
     message: str
 
 class ValidationErrorsFormat(BaseModel):
