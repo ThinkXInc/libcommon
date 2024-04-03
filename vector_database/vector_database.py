@@ -1,5 +1,4 @@
-# llm/vector_database.py
-#
+# vector_database.py
 from pydantic import BaseModel
 from typing import Dict, List, Union, Optional
 from uuid import uuid4
@@ -16,8 +15,9 @@ from libcommon.vector_database.sentence_encoder import SentenceEncoder
 from libcommon.logger import Logger
 logger = Logger('VectorDatabase')
 logger_ = Logger('VectorDatabase_', simple=True)
-logger.setLevel(logger.INFO)
-logger_.setLevel(logger.INFO)
+logLevel = logger.INFO
+logger.setLevel(logLevel)
+logger_.setLevel(logLevel)
 from libcommon.color import *
 
 class CollectionOptions(BaseModel):
@@ -225,9 +225,15 @@ class VectorDatabase:
                 filter_conditions.extend(keyword_conditions)
 
         # Handling for other metadata
+        logger.debug(f'filter condition: metadata={metadata} find_key={find_key}')
         if find_key in metadata:
-            filter_conditions.append(FieldCondition(key=find_key, match=MatchValue(value=metadata[find_key])))
+            condition = FieldCondition(key=find_key, match=MatchValue(value=metadata[find_key]))
+            logger.debug(f'append to filter condition {condition}')
+            filter_conditions.append(condition)
+        if find_key not in metadata and find_key:
+            logger.warning(yellow(f'[WARNING] find_key is set as {find_key} but filter is not created. this doesnt happen.'))
 
+        logger.debug(f'filter conditions generated => {filter_conditions}')
         return filter_conditions
 
     def search(
@@ -264,10 +270,14 @@ class VectorDatabase:
             "limit": num_results
         }
 
+        if not isinstance(metadata, dict):
+            raise TypeError(f'metadata must be type of dict but {type(metadata)}')
+
         filter_conditions = self.filter_condition(find_key, must_match_any, metadata)
     
         if filter_conditions:
             query["query_filter"] = Filter(must=filter_conditions) if must_match_any else Filter(should=filter_conditions)
+
 
         try:
             results = self.client.search(**query, with_vectors=False, with_payload=True)
@@ -275,6 +285,7 @@ class VectorDatabase:
             logger.error(red(f'search error: {e}'))
 
         logger.debug(f'Search results ')
+        logger.debug(f'query {query}')
         logger.debug(bold(f'\n {results}'))
 
         documents = [Document(
