@@ -138,7 +138,7 @@ class Locale:
         logger.debug(f'locale generated message -> "{m}" (key: {key} lang: {lang}) ')
         return m
 
-    def json(self):
+    def to_json_string(self):
         """Return a hashable text set.
 
         returns:
@@ -150,6 +150,14 @@ class Locale:
             sort_keys=True,
             indent=4,
             separators=(',', ': '))
+
+    def json(self):
+        """Return the dictionary.
+
+        returns:
+            - messages_dict (dict) : a text collection dict object including all langs
+        """
+        return self.dict()
 
     def dict(self):
         """Return the dictionary.

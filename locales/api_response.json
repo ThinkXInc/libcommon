@@ -1,4 +1,13 @@
 {
+    "user_found": {
+        "en": "User found.",
+        "ja": "ユーザーが見つかりました。",
+        "zh": "找到用户。",
+        "fr": "Utilisateur trouvé.",
+        "es": "Usuario encontrado.",
+        "ar": "تم العثور على المستخدم.",
+        "ru": "Пользователь найден."
+    },
     "api_errors": {
         "en": "An error occurred while processing the request.",
         "ja": "リクエストの処理中にエラーが発生しました。",
