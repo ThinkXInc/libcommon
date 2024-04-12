@@ -61,5 +61,14 @@
         "es": "Has superado el límite de velocidad.",
         "ar": "لقد تجاوزت الحد المسموح به للسرعة.",
         "ru": "Вы превысили ограничение скорости."
+    },
+    "incorrect_password": {
+        "en": "The password you entered is incorrect.",
+        "ja": "入力されたパスワードが正しくありません。",
+        "zh": "您输入的密码不正确。",
+        "fr": "Le mot de passe que vous avez entré est incorrect.",
+        "es": "La contraseña que ingresó es incorrecta.",
+        "ar": "كلمة المرور التي أدخلتها غير صحيحة.",
+        "ru": "Вы ввели неверный пароль."
     }
 }

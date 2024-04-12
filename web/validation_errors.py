@@ -16,8 +16,23 @@ class InvalidEmailFormatErrorFormat(ValidationErrorFormat):
         message = message if message else get_locale_text(LOCALE_FILE, 'email_format', lang)
         super().__init__(field_name=field_name, value=value, message=message)
 
+class MinLengthNotReachedErrorFormat(ValidationErrorFormat):
+    def __init__(self, field_name: str, value: Optional[str], lang: str, message: str = None):
+        # Fetch localized message if not provided
+        message = message if message else get_locale_text(LOCALE_FILE, 'min_length', lang)
+        super().__init__(field_name=field_name, value=value, message=message)
+
 class MaxLengthExceededErrorFormat(ValidationErrorFormat):
     def __init__(self, field_name: str, value: Optional[str], lang: str, message: str = None):
         # Fetch localized message if not provided
         message = message if message else get_locale_text(LOCALE_FILE, 'max_length', lang)
+        super().__init__(field_name=field_name, value=value, message=message)
+
+class InvalidFormatErrorFormat(ValidationErrorFormat):
+    def __init__(self, field_name: str, value: Optional[str], lang: str, message: str = None):
+        message = message if message else get_locale_text(LOCALE_FILE, 'invalid_format', lang)
+        super().__init__(field_name=field_name, value=value, message=message)
+
+class RegexMatchFailedErrorFormat(ValidationErrorFormat):
+    def __init__(self, field_name: str, value: Optional[str], lang: str, message: str):
         super().__init__(field_name=field_name, value=value, message=message)

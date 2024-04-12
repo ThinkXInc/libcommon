@@ -23,29 +23,38 @@ from Crypto.Cipher import AES
 from Crypto.Util import Padding
 import hashlib
 import base64
-from config import Config
 
+# Config
+from config import Config, check_config
+REQUIRED_KEYS_IN_CONFIG = [
+    'ENCRYPT_KEY',
+]
+check_config(Config, REQUIRED_KEYS_IN_CONFIG)
+
+ENCRYPT_KEY = Config.ENCRYPT_KEY.encode('utf-8')
 
 class Cipher:
-    def __init__(self):
-        self.bs = 32
-        self.key = (hashlib.md5(Config.ENCRYPT_KEY.encode('utf-8')).hexdigest()).encode('utf-8')
+    bs = 32
+    key = (hashlib.md5(ENCRYPT_KEY).hexdigest()).encode('utf-8')
 
-    def encrypt(self, raw):
+    @classmethod
+    def encrypt(cls, raw):
         iv = Random.get_random_bytes(AES.block_size)
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        cipher = AES.new(cls.key, AES.MODE_CBC, iv)
         data = Padding.pad(raw.encode('utf-8'), AES.block_size, 'pkcs7')
         return base64.b64encode(iv + cipher.encrypt(data))
 
-    def decrypt(self, enc):
+    @classmethod
+    def decrypt(cls, enc):
         enc = base64.b64decode(enc)
         iv = enc[:AES.block_size]
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        data = Padding.unpad(cipher.decrypt(enc[AES.block_size:]), AES.block_size, 'pkcs7')
+        cipher = AES.new(cls.key, AES.MODE_CBC, iv)
+        data = Padding.unpad(cls.decrypt(enc[AES.block_size:]), AES.block_size, 'pkcs7')
         return data.decode('utf-8')
 
-    def iscorresponded(self, plaintext, encrypted):
-        if plaintext == self.decrypt(encrypted):
+    @classmethod
+    def compare(cls, plaintext, encrypted):
+        if plaintext == cls.decrypt(encrypted):
             return True
         else:
             return False

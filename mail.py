@@ -3,85 +3,93 @@
 #
 # tools/mail.py
 #
-# Amazon SES wrapper
+# Amazon SES wrapper adapted for configurable instances with error handling and usage example
 #
-# Basic usage:
-#
-# Mail.send_mail(
-#     subject='How are you doing?',
-#     text=MailTemplateClass.template(user, host_url, reset_code),
-#     html=None,  # set if you send html mails
-#     recipient_email=user.email)
-
+# Usage:
+#     mail = Mail(ses_region=Config.SES_AWS_REGION)
+#     mail.send(
+#         sender=Config.SENDER,
+#         reply_to=Config.REPLY_TO,
+#         recipient=user.email,
+#         subject='How are you doing?',
+#         text="Hello, this is a text email.",
+#         html="<h1>Hello, this is an HTML email.</h1>"
+#     )
 
 import boto3
-import logging
-from re import sub
-from config import Config
 
+from libcommon.logger import Logger
+logger = Logger('Mail')
+logger.setLevel(logger.DEBUG)
+from libcommon.color import *
 
-class Mail():
-    __charset__ = "UTF-8"
-    __ses_region__ = Config.SES_AWS_REGION
-    __sender__ = Config.MAIL_SENDER
-    __reply_to_addresses__ = Config.REPLY_TO_ADDRESSES
+class MailSendError(Exception):
+    pass
 
-    def __init__(self):
-        pass
-
-    @classmethod
-    def _client(cls):
-        """This method is used by other method in this class.
-
-        returns:
-            - boto3 client object
+class Mail:
+    def __init__(self, ses_region, charset="UTF-8"):
         """
-        return boto3.client('ses', region_name=cls.__ses_region__)
+        Initialize Mail class with specific SES region and charset.
 
-    @classmethod
-    def send_mail(cls, subject, text, html, recipient_email):
-        """Wrapper of boto3 client
+        Args:
+            ses_region (str): AWS region for the SES service.
+            charset (str): Charset for the email encoding.
 
-        usage:
-            send_mail(
-                subject='How are you doing?',
-                text=PasswordReminderMail.template(user_name, user_email, host_url, reset_code, expiration_day),
-                html="",  # set if you send html mails
-                recipient_email=user.email
+        Raises:
+            Exception: If the SES client initialization fails.
+        """
+        self.charset = charset
+        try:
+            self.client = boto3.client('ses', region_name=ses_region)
+        except Exception as e:
+            logger.error(red(f"Failed to initialize SES client: {e}"))
+            raise Exception(f"Failed to initialize SES client: {e}")
+
+    def send(self, sender, reply_to, recipient, subject, text, html):
+        """
+        Send an email using the provided parameters.
+
+        Args:
+            sender (str): The email address of the sender.
+            reply_to (str): The reply-to email address.
+            recipient (str): The recipient's email address.
+            subject (str): The subject of the email.
+            text (str): The plain text version of the email.
+            html (str): The HTML version of the email.
+
+        Returns:
+            dict: The response from the AWS SES service.
+
+        Raises:
+            MailSendError: If the email cannot be sent.
+        """
+        try:
+            response = self.client.send_email(
+                Destination={
+                    'ToAddresses': [
+                        recipient,
+                    ],
+                },
+                Message={
+                    'Body': {
+                        'Html': {
+                            'Charset': self.charset,
+                            'Data': html,
+                        },
+                        'Text': {
+                            'Charset': self.charset,
+                            'Data': text,
+                        },
+                    },
+                    'Subject': {
+                        'Charset': self.charset,
+                        'Data': subject,
+                    },
+                },
+                Source=sender,
+                ReplyToAddresses=[reply_to]
             )
-
-        args:
-            - subject: str
-            - text: str
-            - html: str
-            - recipient_email: str
-        returns:
-            - response:
-        """
-        client = cls._client()
-        response = client.send_email(
-            Destination={
-                'ToAddresses': [
-                    recipient_email,
-                ],
-            },
-            Message={
-                'Body': {
-                    'Html': {
-                        'Charset': cls.__charset__,
-                        'Data': html,
-                    },
-                    'Text': {
-                        'Charset': cls.__charset__,
-                        'Data': text,
-                    },
-                },
-                'Subject': {
-                    'Charset': cls.__charset__,
-                    'Data': subject,
-                },
-            },
-            Source=cls.__sender__,
-            ReplyToAddresses=cls.__reply_to_addresses__
-        )
-        return response
+            return response
+        except Exception as e:
+            logger.error(red(f"Failed to send email: {e}"))
+            raise MailSendError(f"Failed to send email: {e}")

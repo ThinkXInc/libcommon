@@ -37,3 +37,8 @@ class RateLimitExceededAPIErrorFormat(APIErrorFormat):
     def __init__(self, lang: str, field_name: str = '', message: str = None):
         message = message if message else get_locale_text(LOCALE_FILE, 'rate_limit_exceeded', lang)
         super().__init__(field_name=field_name, code=ErrorCode.TOO_MANY_REQUESTS, message=message)
+
+class IncorrectPasswordAPIErrorFormat(APIErrorFormat):
+    def __init__(self, lang: str, field_name: str = 'password', message: str = None):
+        default_message = get_locale_text(LOCALE_FILE, 'incorrect_password', lang)
+        super().__init__(field_name=field_name, code=ErrorCode.UNAUTHORIZED, message=message or default_message)

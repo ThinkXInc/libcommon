@@ -1,6 +1,7 @@
 # libcommon/web/flask_helpers.py
 from typing import Optional
 from flask import request, g
+import re
 from functools import wraps, partial
 
 from config import Config, check_config
@@ -13,7 +14,8 @@ from libcommon.validator import Validator, ValidationType
 from libcommon.web.session import Session
 from libcommon.web.http_response_formatter import ValidationErrorFormat, ValidationErrorsFormat
 from libcommon.web.validation_errors import RequiredFieldsNotSatisfiedFormat, \
-InvalidEmailFormatErrorFormat, MaxLengthExceededErrorFormat
+InvalidEmailFormatErrorFormat, MaxLengthExceededErrorFormat, \
+InvalidFormatErrorFormat, RegexMatchFailedErrorFormat
 from libcommon.web.http_errors import InvalidContentTypeAPIErrorFormat, \
 UnexpectedAPIErrorFormat, ForbiddenAPIErrorFormat, ResourceNotFoundAPIErrorFormat, \
 BadRequestAPIErrorFormat, UnauthorizedAPIErrorFormat, RateLimitExceededAPIErrorFormat
@@ -87,6 +89,90 @@ def required_fields_check(required_fields):
                         lang=lang))
 
             g.errors = errors
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def required_query_params(required_params):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            query_params = request.args
+            errors = []
+            # Validate presence and non-emptiness of required query parameters
+            for param in required_params:
+                value = query_params.get(param)
+                if value is None or value == '':
+                    lang = kwargs.get('lang', 'en')  # default to 'en' if 'lang' is not provided
+                    errors.append(RequiredFieldsNotSatisfiedFormat(
+                        field_name=param,
+                        value=value,
+                        lang=lang
+                    ))
+
+            # Check if there were any errors collected
+            if errors:
+                return handle_query_param_errors(errors, lang)
+
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def format_check(field_name, expected_type):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            json_data = request.json
+            value = json_data.get(field_name)
+            if not isinstance(value, expected_type):
+                lang = kwargs.get('lang', DEFAULT_LANG)
+                g.errors.append(InvalidFormatErrorFormat(
+                    field_name=field_name,
+                    value=str(value),
+                    lang=lang))
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def length_check(field_name, min_length, max_length):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            json_data = request.json
+            value = json_data.get(field_name, "")
+            lang = kwargs.get('lang', DEFAULT_LANG)
+
+            # Check for minimum length
+            if len(value) < min_length:
+                g.errors.append(MinLengthNotReachedErrorFormat(
+                    field_name=field_name,
+                    value=value,
+                    lang=lang))
+
+            # Check for maximum length
+            elif len(value) > max_length:
+                g.errors.append(MaxLengthExceededErrorFormat(
+                    field_name=field_name,
+                    value=value,
+                    lang=lang))
+
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def regex_check(field_name, regex_pattern, locale_key):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            json_data = request.json
+            value = json_data.get(field_name)
+            if value and not re.match(regex_pattern, value):
+                lang = kwargs.get('lang', DEFAULT_LANG)
+                g.errors.append(RegexMatchFailedErrorFormat(
+                    field_name=field_name,
+                    value=value,
+                    lang=lang,
+                    message=get_locale_text(LOCALE_FILE, locale_key, lang)))
             return f(*args, **kwargs)
         return wrapper
     return decorator
