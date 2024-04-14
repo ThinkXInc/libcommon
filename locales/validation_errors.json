@@ -1,4 +1,13 @@
 {
+    "validation_error": {
+        "en": "Invalid input format",
+        "ja": "不正な入力形式",
+        "zh": "输入格式无效",
+        "fr": "Format d'entrée invalide",
+        "es": "Formato de entrada no válido",
+        "ar": "تنسيق الإدخال غير صالح",
+        "ru": "Неверный формат ввода"
+    },
     "required": {
         "en": "This field is required.",
         "ja": "このフィールドは必須です。",
@@ -52,6 +61,15 @@
         "es": "La contraseña debe contener al menos una letra minúscula, una letra mayúscula, un número y tener al menos 8 caracteres de longitud.",
         "ar": "يجب أن تحتوي كلمة المرور على حرف صغير واحد على الأقل، وحرف كبير واحد، ورقم واحد، وأن تكون بطول 8 أحرف على الأقل.",
         "ru": "Пароль должен содержать хотя бы одну строчную букву, одну заглавную букву, одну цифру и быть не менее 8 символов в длину."
+    },
+    "password_not_corresponding": {
+        "en": "Passwords do not match.",
+        "ja": "パスワードが一致しません。",
+        "zh": "密码不匹配。",
+        "fr": "Les mots de passe ne correspondent pas.",
+        "es": "Las contraseñas no coinciden.",
+        "ar": "كلمات المرور غير متطابقة.",
+        "ru": "Пароли не совпадают."
     },
     "not_corresponding": {
         "en": "The input values do not match.",
@@ -124,6 +142,14 @@
         "es": "La hora debe estar en el formato HH:MM con intervalos de 30 minutos.",
         "ar": "يجب أن يكون الوقت بتنسيق HH:MM مع فترات 30 دقيقة.",
         "ru": "Время должно быть в формате ЧЧ:ММ с интервалами в 30 минут."
+    },
+    "regex_not_match": {
+        "en": "The input format is incorrect.",
+        "ja": "入力形式が正しくありません。",
+        "zh": "输入格式不正确。",
+        "fr": "Le format d'entrée est incorrect.",
+        "es": "El formato de entrada es incorrecto.",
+        "ar": "تنسيق الإدخال غير صحيح.",
+        "ru": "Формат ввода неверен."
     }
-
 }

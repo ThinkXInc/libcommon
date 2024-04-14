@@ -38,6 +38,7 @@ LANG_NAME_MAP = Language.lang_label_map(only=['en', 'ja', 'zh'])
 def language_wrapper(func):
     @wraps(func)
     def decorated_function(*args, **kwargs):
+        logger.debug(f"Entering language_wrapper with URL path: {request.path}")
         # Step 1: Look at the URL
         path_parts = request.path.split('/')
         url_lang = path_parts[1] if len(path_parts) > 1 else None
@@ -45,9 +46,11 @@ def language_wrapper(func):
         # Step 2: Check if the 2nd part of the URL is in LANG_NAME_MAP
         if url_lang and url_lang in LANG_NAME_MAP.keys():
             lang = url_lang
+            logger.debug(f"Language set from URL: {lang}")
         else:
             # Step 3: If not, fallback to kwargs or DEFAULT_LANG
             lang = kwargs.get('lang', DEFAULT_LANG)
+            logger.debug(f"Language set from default or kwargs: {lang}")
 
         # Step 4: Set the chosen language
         lang_name = LANG_NAME_MAP.get(lang, LANG_NAME_MAP.get(DEFAULT_LANG))
@@ -60,9 +63,12 @@ def language_wrapper(func):
 def content_type_check_json(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
+        content_type = request.headers.get('Content-Type', '')
+        logger.debug(f"Checking content type of request: {content_type}")
         if request.headers['Content-Type'] not in \
                 ('application/json', 'application/json; charset=utf-8'):
             lang = kwargs.get('lang', DEFAULT_LANG)  # default to 'en' if 'lang' is not provided
+            logger.debug(f"Invalid content type, expected 'application/json', got: {content_type}")
             return InvalidContentTypeAPIErrorFormat(
                 lang=lang).http_response()
         return f(*args, **kwargs)
@@ -72,6 +78,7 @@ def required_fields_check(required_fields):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+            logger.debug(f"Checking required fields: {required_fields}")
             json_data = request.json
             if json_data is None:
                 lang = kwargs.get('lang', DEFAULT_LANG)  # default to 'en' if 'lang' is not provided
@@ -87,7 +94,7 @@ def required_fields_check(required_fields):
                         field_name=field_name,
                         value=value,
                         lang=lang))
-
+                    logger.debug(f"Field error added: {field_name}, {value}")
             g.errors = errors
             return f(*args, **kwargs)
         return wrapper
@@ -97,6 +104,7 @@ def required_query_params(required_params):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+            logger.debug(f"Validating required query parameters: {required_params}")
             query_params = request.args
             errors = []
             # Validate presence and non-emptiness of required query parameters
@@ -109,6 +117,7 @@ def required_query_params(required_params):
                         value=value,
                         lang=lang
                     ))
+                    logger.debug(f"Missing or empty query parameter: {param}, value: {value}")
 
             # Check if there were any errors collected
             if errors:
@@ -130,6 +139,7 @@ def format_check(field_name, expected_type):
                     field_name=field_name,
                     value=str(value),
                     lang=lang))
+                logger.debug(f"Invalid format for field: {field_name}, expected type: {expected_type.__name__}, got: {type(value).__name__}")
             return f(*args, **kwargs)
         return wrapper
     return decorator
@@ -141,6 +151,7 @@ def length_check(field_name, min_length, max_length):
             json_data = request.json
             value = json_data.get(field_name, "")
             lang = kwargs.get('lang', DEFAULT_LANG)
+            logger.debug(f"Checking length of field: {field_name}, min: {min_length}, max: {max_length}, current length: {len(value)}")
 
             # Check for minimum length
             if len(value) < min_length:
@@ -148,6 +159,7 @@ def length_check(field_name, min_length, max_length):
                     field_name=field_name,
                     value=value,
                     lang=lang))
+                logger.debug(f"Field {field_name} is below minimum length: {len(value)}")
 
             # Check for maximum length
             elif len(value) > max_length:
@@ -155,6 +167,7 @@ def length_check(field_name, min_length, max_length):
                     field_name=field_name,
                     value=value,
                     lang=lang))
+                logger.debug(f"Field {field_name} exceeds maximum length: {len(value)}")
 
             return f(*args, **kwargs)
         return wrapper
@@ -172,7 +185,8 @@ def regex_check(field_name, regex_pattern, locale_key):
                     field_name=field_name,
                     value=value,
                     lang=lang,
-                    message=get_locale_text(LOCALE_FILE, locale_key, lang)))
+                    locale_key=locale_key))
+                logger.debug(f"Regex check failed for field: {field_name}, pattern: {regex_pattern}, value: {value}")
             return f(*args, **kwargs)
         return wrapper
     return decorator
@@ -180,10 +194,11 @@ def regex_check(field_name, regex_pattern, locale_key):
 def validate_request(lang, locale) -> Optional[ValidationErrorFormat]:
     errors = g.get('errors', [])
     if errors:
+        logger.debug(f"{errors} validation errors found.")
         return ValidationErrorsFormat(
             errors=errors,  # ValidationErrorFormat objects
-            message=locale.get('unexpected_error', lang
-        ))
+            message=locale.get('validation_error', lang))
+    logger.debug("No validation errors, request is valid.")
     return None
 
 # A generic function to handle errors

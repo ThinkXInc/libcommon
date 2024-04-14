@@ -34,5 +34,8 @@ class InvalidFormatErrorFormat(ValidationErrorFormat):
         super().__init__(field_name=field_name, value=value, message=message)
 
 class RegexMatchFailedErrorFormat(ValidationErrorFormat):
-    def __init__(self, field_name: str, value: Optional[str], lang: str, message: str):
+    def __init__(self, field_name: str, value: Optional[str], lang: str, locale_key: str, message: str = None):
+        if locale_key:
+            message = get_locale_text(LOCALE_FILE, locale_key, lang)
+        message = message if message else get_locale_text(LOCALE_FILE, 'regex_not_match', lang)
         super().__init__(field_name=field_name, value=value, message=message)
