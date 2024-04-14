@@ -26,6 +26,24 @@
         "ar": "استخدم تنسيق البريد الإلكتروني القياسي. مثال: name@domain.com.",
         "ru": "Используйте стандартный формат электронной почты. Например: name@domain.com."
     },
+    "password_at_least_one_alphabet_format": {
+        "en": "Password must contain at least one alphabetic character.",
+        "ja": "パスワードは少なくとも1つのアルファベットを含む必要があります。",
+        "zh": "密码必须至少包含一个字母字符。",
+        "fr": "Le mot de passe doit contenir au moins un caractère alphabétique.",
+        "es": "La contraseña debe contener al menos un carácter alfabético.",
+        "ar": "يجب أن تحتوي كلمة المرور على حرف أبجدي واحد على الأقل.",
+        "ru": "Пароль должен содержать хотя бы один алфавитный символ."
+    },
+    "password_at_least_one_numeric_format": {
+        "en": "Password must contain at least one numeric character.",
+        "ja": "パスワードには少なくとも1つの数字が含まれている必要があります。",
+        "zh": "密码必须至少包含一个数字字符。",
+        "fr": "Le mot de passe doit contenir au moins un caractère numérique.",
+        "es": "La contraseña debe contener al menos un carácter numérico.",
+        "ar": "يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.",
+        "ru": "Пароль должен содержать хотя бы один цифровой символ."
+    },
     "password_format": {
         "en": "Password must contain at least one lowercase letter, one uppercase letter, one number, and be at least 8 characters long.",
         "ja": "パスワードは、少なくとも1つの小文字、1つの大文字、1つの数字を含む、長さが8文字以上でなければなりません。",
@@ -34,6 +52,15 @@
         "es": "La contraseña debe contener al menos una letra minúscula, una letra mayúscula, un número y tener al menos 8 caracteres de longitud.",
         "ar": "يجب أن تحتوي كلمة المرور على حرف صغير واحد على الأقل، وحرف كبير واحد، ورقم واحد، وأن تكون بطول 8 أحرف على الأقل.",
         "ru": "Пароль должен содержать хотя бы одну строчную букву, одну заглавную букву, одну цифру и быть не менее 8 символов в длину."
+    },
+    "not_corresponding": {
+        "en": "The input values do not match.",
+        "ja": "入力内容が一致しません。",
+        "zh": "输入值不匹配。",
+        "fr": "Les valeurs entrées ne correspondent pas.",
+        "es": "Los valores introducidos no coinciden.",
+        "ar": "القيم المدخلة لا تتطابق.",
+        "ru": "Введенные значения не совпадают."
     },
     "tel_format": {
         "en": "Telephone number must be in the correct format. For example: 080-1234-5678 or (800)123-4567.",
@@ -53,13 +80,50 @@
         "ar": "يجب أن يكون الرمز البريدي بالتنسيق الصحيح. مثال: A1A 1A1 أو 12345.",
         "ru": "Почтовый индекс должен быть в правильном формате. Например: A1A 1A1 или 12345."
     },
-    "not_corresponding": {
-        "en": "The input values do not match.",
-        "ja": "入力内容が一致しません。",
-        "zh": "输入值不匹配。",
-        "fr": "Les valeurs entrées ne correspondent pas.",
-        "es": "Los valores introducidos no coinciden.",
-        "ar": "القيم المدخلة لا تتطابق.",
-        "ru": "Введенные значения не совпадают."
+    "postal_code_nohyphen_format": {
+        "en": "Postal code must be in the correct format without hyphens.",
+        "ja": "郵便番号はハイフンなしの正しい形式である必要があります。",
+        "zh": "邮政编码必须是无连字符的正确格式。",
+        "fr": "Le code postal doit être dans le format correct sans tirets.",
+        "es": "El código postal debe tener el formato correcto sin guiones.",
+        "ar": "يجب أن يكون الرمز البريدي في التنسيق الصحيح دون شرطات.",
+        "ru": "Почтовый индекс должен быть в правильном формате без дефисов."
+    },
+    "yyyy_mm_dd_format": {
+        "en": "Date must be in YYYY-MM-DD format.",
+        "ja": "日付はYYYY-MM-DD形式でなければなりません。",
+        "zh": "日期必须是YYYY-MM-DD格式。",
+        "fr": "La date doit être au format AAAA-MM-JJ.",
+        "es": "La fecha debe estar en el formato AAAA-MM-DD.",
+        "ar": "يجب أن يكون التاريخ بتنسيق YYYY-MM-DD.",
+        "ru": "Дата должна быть в формате ГГГГ-ММ-ДД."
+    },
+    "yyyy_mm_format": {
+        "en": "Date must be in YYYY-MM format.",
+        "ja": "日付はYYYY-MM形式でなければなりません。",
+        "zh": "日期必须是YYYY-MM格式。",
+        "fr": "La date doit être au format AAAA-MM.",
+        "es": "La fecha debe estar en el formato AAAA-MM.",
+        "ar": "يجب أن يكون التاريخ بتنسيق YYYY-MM.",
+        "ru": "Дата должна быть в формате ГГГГ-ММ."
+    },
+    "hh_mm_format": {
+        "en": "Time must be in HH:MM format.",
+        "ja": "時間はHH:MM形式でなければなりません。",
+        "zh": "时间必须是HH:MM格式。",
+        "fr": "L'heure doit être au format HH:MM.",
+        "es": "La hora debe estar en el formato HH:MM.",
+        "ar": "يجب أن يكون الوقت بتنسيق HH:MM.",
+        "ru": "Время должно быть в формате ЧЧ:ММ."
+    },
+    "hh_mm_30min_format": {
+        "en": "Time must be in HH:MM format with 30-minute intervals.",
+        "ja": "時間は30分間隔のHH:MM形式でなければなりません。",
+        "zh": "时间必须是HH:MM格式，且为30分钟间隔。",
+        "fr": "L'heure doit être au format HH:MM avec des intervalles de 30 minutes.",
+        "es": "La hora debe estar en el formato HH:MM con intervalos de 30 minutos.",
+        "ar": "يجب أن يكون الوقت بتنسيق HH:MM مع فترات 30 دقيقة.",
+        "ru": "Время должно быть в формате ЧЧ:ММ с интервалами в 30 минут."
     }
+
 }
