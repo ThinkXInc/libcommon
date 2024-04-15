@@ -27,7 +27,12 @@ class MailSendError(Exception):
     pass
 
 class Mail:
-    def __init__(self, ses_region, charset="UTF-8"):
+    def __init__(
+        self,
+        aws_access_key_id: str,
+        aws_secret_access_key: str,
+        region_name: str,
+        charset="UTF-8"):
         """
         Initialize Mail class with specific SES region and charset.
 
@@ -40,7 +45,12 @@ class Mail:
         """
         self.charset = charset
         try:
-            self.client = boto3.client('ses', region_name=ses_region)
+            logger.info(f'Mail client initialize with\nAWS_ACCESS_KEY_ID:{aws_access_key_id} SES_REGION:{region_name}')
+            self.client = boto3.client(
+                'ses',
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key,
+                region_name=region_name)
         except Exception as e:
             logger.error(red(f"Failed to initialize SES client: {e}"))
             raise Exception(f"Failed to initialize SES client: {e}")
