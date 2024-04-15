@@ -198,7 +198,7 @@ def validate_request(lang, locale) -> Optional[ValidationErrorFormat]:
         return ValidationErrorsFormat(
             errors=errors,  # ValidationErrorFormat objects
             message=locale.get('validation_error', lang))
-    logger.debug("No validation errors, request is valid.")
+    logger.debug("validate request -> ok")
     return None
 
 # A generic function to handle errors

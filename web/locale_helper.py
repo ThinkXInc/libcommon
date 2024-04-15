@@ -14,9 +14,9 @@ DEFAULT_LOCALE_FILE_PATHS = [
     (Path(__file__).parent.parent / 'locales' / 'api_response.json').absolute(),
 ]
 
-def get_locale_text(locale_file_path, key, lang = Config.DEFAULT_LANG):
+def get_locale_text(locale_file_path, key, lang = Config.DEFAULT_LANG, locale_args: list = None):
     for locale_file_path in DEFAULT_LOCALE_FILE_PATHS:
         if not locale_file_path.exists():
             raise FileNotFoundError(f"Locale file not found at {locale_file_path}")
     locale = Locale(DEFAULT_LOCALE_FILE_PATHS)
-    return locale.get(key, lang)
+    return locale.get(key, lang, locale_args = None)

@@ -70,5 +70,14 @@
         "es": "La contraseña que ingresó es incorrecta.",
         "ar": "كلمة المرور التي أدخلتها غير صحيحة.",
         "ru": "Вы ввели неверный пароль."
+    },
+    "user_already_exists": {
+        "en": "The user with the entered email address already exists.",
+        "ja": "入力されたメールアドレスのユーザーはすでに存在します。",
+        "zh": "输入的电子邮件地址的用户已经存在。",
+        "fr": "L'utilisateur avec l'adresse e-mail saisie existe déjà.",
+        "es": "El usuario con la dirección de correo electrónico ingresada ya existe.",
+        "ar": "المستخدم بالبريد الإلكتروني المُدخل موجود بالفعل.",
+        "ru": "Пользователь с введённым адресом электронной почты уже существует."
     }
 }
