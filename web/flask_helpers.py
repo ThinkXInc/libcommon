@@ -18,7 +18,11 @@ InvalidEmailFormatErrorFormat, MaxLengthExceededErrorFormat, \
 InvalidFormatErrorFormat, RegexMatchFailedErrorFormat
 from libcommon.web.http_errors import InvalidContentTypeAPIErrorFormat, \
 UnexpectedAPIErrorFormat, ForbiddenAPIErrorFormat, ResourceNotFoundAPIErrorFormat, \
-BadRequestAPIErrorFormat, UnauthorizedAPIErrorFormat, RateLimitExceededAPIErrorFormat
+BadRequestAPIErrorFormat, UnauthorizedAPIErrorFormat, RateLimitExceededAPIErrorFormat, \
+GoogleOauthTokenErrorFormat
+from libcommon.web.google_oauth_helper import verify_token, \
+InvalidTokenError, WrongIssuerError, ClientIDMismatchError, TokenExpiredError, \
+EmailNotVerifiedError
 
 # Set logger
 from libcommon.logger import Logger
@@ -240,3 +244,37 @@ def session_helper(f):
         return f(user=user, *args, **kwargs)
 
     return decorated_function
+
+def google_oauth_token_check(field_name):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            logger.debug(f"Attempting to validate Google OAuth token from field '{field_name}'")
+            token = request.json.get(field_name)
+            if not token:
+                error_format = GoogleOauthTokenErrorFormat(error_message='Missing token', code=ErrorCode.UNAUTHORIZED)
+                logger.error(red(f"Missing token in field '{field_name}'"))
+                g.setdefault('errors', []).append(error_format)
+                return validate_request(kwargs.get('lang'), locale)
+
+            try:
+                # Verify the OAuth token and extract user info
+                user_info = verify_token(token)
+                kwargs['email'] = user_info['email']
+                kwargs['google_id'] = user_info['sub']
+                logger.debug(f"Token valid for email: {user_info['email']} with Google ID: {user_info['sub']}")
+            except Exception as e:  # Capture all related exceptions
+                if isinstance(e, InvalidTokenError):
+                    error_format = GoogleOauthTokenErrorFormat(error_message=str(e), code=ErrorCode.UNAUTHORIZED)
+                elif isinstance(e, WrongIssuerError) or isinstance(e, ClientIDMismatchError) or isinstance(e, EmailNotVerifiedError):
+                    error_format = GoogleOauthTokenErrorFormat(error_message=str(e), code=ErrorCode.FORBIDDEN)
+                elif isinstance(e, TokenExpiredError):
+                    error_format = GoogleOauthTokenErrorFormat(error_message=str(e), code=ErrorCode.UNAUTHORIZED)
+                else:
+                    error_format = GoogleOauthTokenErrorFormat(error_message='An internal error occurred', code=ErrorCode.INTERNAL_SERVER_ERROR)
+                logger.error(red(f"OAuth token validation failed: {str(e)}"))
+                g.errors.append(error_format)
+
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
