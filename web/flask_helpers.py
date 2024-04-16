@@ -44,17 +44,21 @@ def language_wrapper(func):
     def decorated_function(*args, **kwargs):
         logger.debug(f"Entering language_wrapper with URL path: {request.path}")
         # Step 1: Look at the URL
-        path_parts = request.path.split('/')
-        url_lang = path_parts[1] if len(path_parts) > 1 else None
+        path_parts = request.path.strip('/').split('/')
 
         # Step 2: Check if the 2nd part of the URL is in LANG_NAME_MAP
-        if url_lang and url_lang in LANG_NAME_MAP.keys():
+        url_lang = None
+        if len(path_parts) > 1:
+            url_lang = path_parts[1] if path_parts[1] in LANG_NAME_MAP else None
+        if not url_lang and len(path_parts) > 2:
+            url_lang = path_parts[2] if path_parts[2] in LANG_NAME_MAP else None
+
+        if url_lang:
             lang = url_lang
             logger.debug(f"Language set from URL: {lang}")
         else:
-            # Step 3: If not, fallback to kwargs or DEFAULT_LANG
             lang = kwargs.get('lang', DEFAULT_LANG)
-            logger.debug(f"Language set from default or kwargs: {lang}")
+            logger.debug(f"Language not found in url. set from default or kwargs: {lang}")
 
         # Step 4: Set the chosen language
         lang_name = LANG_NAME_MAP.get(lang, LANG_NAME_MAP.get(DEFAULT_LANG))
@@ -206,7 +210,7 @@ def validate_request(lang, locale) -> Optional[ValidationErrorFormat]:
     return None
 
 # A generic function to handle errors
-def handle_error(error, error_class):
+def handle_error(error, error_class, lang):
     @language_wrapper
     def inner_handle_error(*args, **kwargs):
         lang = kwargs.get('lang', DEFAULT_LANG)  # Now dynamic
