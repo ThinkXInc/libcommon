@@ -143,6 +143,15 @@
         "ar": "يجب أن يكون الوقت بتنسيق HH:MM مع فترات 30 دقيقة.",
         "ru": "Время должно быть в формате ЧЧ:ММ с интервалами в 30 минут."
     },
+    "domain_format": {
+        "en": "Please enter the domain in the correct format. For example, xxx.com or xxx.com/page.",
+        "ja": "ドメインを正しい形式で入力してください。例) xxx.com, xxx.com/page",
+        "zh": "请以正确的格式输入域名。例如：xxx.com 或 xxx.com/page。",
+        "fr": "Veuillez saisir le domaine dans le format correct. Par exemple, xxx.com ou xxx.com/page.",
+        "es": "Por favor, introduzca el dominio en el formato correcto. Por ejemplo, xxx.com o xxx.com/page.",
+        "ar": "يرجى إدخال النطاق بالتنسيق الصحيح. على سبيل المثال، xxx.com أو xxx.com/page.",
+        "ru": "Пожалуйста, введите домен в правильном формате. Например, xxx.com или xxx.com/page."
+    },
     "regex_not_match": {
         "en": "The input format is incorrect.",
         "ja": "入力形式が正しくありません。",

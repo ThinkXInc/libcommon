@@ -48,10 +48,10 @@ def language_wrapper(func):
 
         # Step 2: Check if the 2nd part of the URL is in LANG_NAME_MAP
         url_lang = None
-        if len(path_parts) > 1:
-            url_lang = path_parts[1] if path_parts[1] in LANG_NAME_MAP else None
-        if not url_lang and len(path_parts) > 2:
-            url_lang = path_parts[2] if path_parts[2] in LANG_NAME_MAP else None
+        if len(path_parts) > 0 and path_parts[0] in LANG_NAME_MAP:
+            url_lang = path_parts[0]
+        elif len(path_parts) > 1 and path_parts[1] in LANG_NAME_MAP:
+            url_lang = path_parts[1]
 
         if url_lang:
             lang = url_lang
