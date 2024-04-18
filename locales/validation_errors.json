@@ -80,6 +80,15 @@
         "ar": "القيم المدخلة لا تتطابق.",
         "ru": "Введенные значения не совпадают."
     },
+    "positive_integer_format": {
+        "en": "Please enter a number between $0 and $1.",
+        "ja": "$0~$1までの数を入力してください。",
+        "zh": "请输入一个介于$0和$1之间的数字。",
+        "fr": "Veuillez entrer un nombre entre $0 et $1.",
+        "es": "Por favor, introduzca un número entre $0 y $1.",
+        "ar": "الرجاء إدخال رقم بين $0 و$1.",
+        "ru": "Пожалуйста, введите число между $0 и $1."
+    },
     "tel_format": {
         "en": "Telephone number must be in the correct format. For example: 080-1234-5678 or (800)123-4567.",
         "ja": "正しい電話番号の形式で入力してください。 (例) 080-1234-5678",
