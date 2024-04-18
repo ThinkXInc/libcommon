@@ -1,12 +1,12 @@
 {
     "validation_error": {
-        "en": "Invalid input format",
-        "ja": "不正な入力形式",
-        "zh": "输入格式无效",
-        "fr": "Format d'entrée invalide",
-        "es": "Formato de entrada no válido",
-        "ar": "تنسيق الإدخال غير صالح",
-        "ru": "Неверный формат ввода"
+        "en": "Invalid input format.",
+        "ja": "不正な入力形式です。",
+        "zh": "输入格式无效。",
+        "fr": "Format d'entrée invalide.",
+        "es": "Formato de entrada inválido.",
+        "ar": "تنسيق الإدخال غير صالح.",
+        "ru": "Неверный формат ввода."
     },
     "required": {
         "en": "This field is required.",
