@@ -24,6 +24,12 @@ from Crypto.Util import Padding
 import hashlib
 import base64
 
+# Logger
+from libcommon.logger import Logger
+logger = Logger()
+logger.setLevel(logger.DEBUG)
+from libcommon.color import *
+
 # Config
 from config import Config, check_config
 REQUIRED_KEYS_IN_CONFIG = [
@@ -39,22 +45,35 @@ class Cipher:
 
     @classmethod
     def encrypt(cls, raw):
+        logger.debug("Starting encryption process.")
         iv = Random.get_random_bytes(AES.block_size)
         cipher = AES.new(cls.key, AES.MODE_CBC, iv)
         data = Padding.pad(raw.encode('utf-8'), AES.block_size, 'pkcs7')
-        return base64.b64encode(iv + cipher.encrypt(data))
+        encrypted_data = base64.b64encode(iv + cipher.encrypt(data))
+        logger.debug(f"Raw data: {raw}")
+        logger.debug(f"Encrypted data: {encrypted_data}")
+        return encrypted_data
 
     @classmethod
     def decrypt(cls, enc):
-        enc = base64.b64decode(enc)
-        iv = enc[:AES.block_size]
-        cipher = AES.new(cls.key, AES.MODE_CBC, iv)
-        data = Padding.unpad(cls.decrypt(enc[AES.block_size:]), AES.block_size, 'pkcs7')
-        return data.decode('utf-8')
+        logger.debug("Starting decryption process.")
+        try:
+            enc = base64.b64decode(enc)
+            logger.debug(f"Base64 decoded data: {enc}")
+            iv = enc[:AES.block_size]
+            cipher = AES.new(cls.key, AES.MODE_CBC, iv)
+            decrypted_data = cipher.decrypt(enc[AES.block_size:])
+            plain_text = Padding.unpad(decrypted_data, AES.block_size, 'pkcs7').decode('utf-8')
+            logger.debug(f"Decrypted text: {plain_text}")
+            return plain_text
+        except Exception as e:
+            logger.error("Decryption failed", exc_info=True)
+            raise e
 
     @classmethod
     def compare(cls, plaintext, encrypted):
-        if plaintext == cls.decrypt(encrypted):
-            return True
-        else:
-            return False
+        logger.debug("Comparing plaintext with decrypted text.")
+        decrypted_text = cls.decrypt(encrypted)
+        result = plaintext == decrypted_text
+        logger.debug(f"Plaintext: {plaintext}, Decrypted text: {decrypted_text}, Comparison result: {result}")
+        return result
