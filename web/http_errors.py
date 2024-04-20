@@ -51,3 +51,8 @@ class UserAlreadyExistsErrorFormat(APIErrorFormat):
 class GoogleOauthTokenErrorFormat(APIErrorFormat):
     def __init__(self, error_message: str, code: ErrorCode, field_name: str = 'token'):
         super().__init__(field_name=field_name, code=code, message=error_message)
+
+class InvalidPasswordFormatErrorFormat(APIErrorFormat):
+    def __init__(self, lang: str, message: str = None):
+        default_message = get_locale_text(LOCALE_FILE, 'invalid_password_format', lang)
+        super().__init__(field_name='password', code=ErrorCode.BAD_REQUEST, message=message or default_message)

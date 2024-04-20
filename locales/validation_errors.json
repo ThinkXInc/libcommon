@@ -53,7 +53,7 @@
         "ar": "يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.",
         "ru": "Пароль должен содержать хотя бы один цифровой символ."
     },
-    "password_format": {
+    "invalid_password_format": {
         "en": "Password must contain at least one lowercase letter, one uppercase letter, one number, and be at least 8 characters long.",
         "ja": "パスワードは、少なくとも1つの小文字、1つの大文字、1つの数字を含む、長さが8文字以上でなければなりません。",
         "zh": "密码必须包含至少一个小写字母、一个大写字母、一个数字，并且长度至少为8个字符。",

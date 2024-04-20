@@ -49,20 +49,20 @@ class Cipher:
         iv = Random.get_random_bytes(AES.block_size)
         cipher = AES.new(cls.key, AES.MODE_CBC, iv)
         data = Padding.pad(raw.encode('utf-8'), AES.block_size, 'pkcs7')
-        encrypted_data = base64.b64encode(iv + cipher.encrypt(data))
+        encrypted_data = iv + cipher.encrypt(data)
+        encoded_encrypted_data = base64.b64encode(encrypted_data).decode('utf-8')
         logger.debug(f"Raw data: {raw}")
-        logger.debug(f"Encrypted data: {encrypted_data}")
-        return encrypted_data
+        logger.debug(f"Encrypted data: {encoded_encrypted_data}")
+        return encoded_encrypted_data
 
     @classmethod
     def decrypt(cls, enc):
         logger.debug("Starting decryption process.")
         try:
-            enc = base64.b64decode(enc)
-            logger.debug(f"Base64 decoded data: {enc}")
-            iv = enc[:AES.block_size]
+            decoded_enc = base64.b64decode(enc)  # Decode the base64 string to bytes
+            iv = decoded_enc[:AES.block_size]
             cipher = AES.new(cls.key, AES.MODE_CBC, iv)
-            decrypted_data = cipher.decrypt(enc[AES.block_size:])
+            decrypted_data = cipher.decrypt(decoded_enc[AES.block_size:])
             plain_text = Padding.unpad(decrypted_data, AES.block_size, 'pkcs7').decode('utf-8')
             logger.debug(f"Decrypted text: {plain_text}")
             return plain_text
