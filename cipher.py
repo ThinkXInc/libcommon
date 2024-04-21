@@ -33,11 +33,11 @@ from libcommon.color import *
 # Config
 from config import Config, check_config
 REQUIRED_KEYS_IN_CONFIG = [
-    'ENCRYPT_KEY',
+    'PASSWORD_ENCRYPT_KEY',
 ]
 check_config(Config, REQUIRED_KEYS_IN_CONFIG)
 
-ENCRYPT_KEY = Config.ENCRYPT_KEY.encode('utf-8')
+ENCRYPT_KEY = Config.PASSWORD_ENCRYPT_KEY.encode('utf-8')
 
 class Cipher:
     bs = 32
