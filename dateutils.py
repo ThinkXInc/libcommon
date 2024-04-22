@@ -15,6 +15,7 @@
 
 import sys
 from flask import jsonify
+import pytz
 from pytz import timezone
 from datetime import datetime, timedelta
 sys.path.append('../')
@@ -44,7 +45,7 @@ sys.path.append('../')
 #        return repr(f'{self.iso_formatted_string} is invalid as iso formatted timestamp.')
 
 
-def datetime_to_iso8061(date: datetime = None, tz="Asia/Tokyo") -> str:
+def datetime_to_iso8061(date: datetime = None, tz=pytz.utc) -> str:
     """Converts a datetime object to its ISO 8061 string representation.
 
     Parameters:
@@ -105,7 +106,7 @@ def expiration_datetime(after_hours=48):
     datetime.datetime(2023, 9, 25, 7, 45, 12, 345678)  # Example time
     """
 
-    return datetime.now() + timedelta(hours=after_hours)
+    return datetime.now(pytz.utc) + timedelta(hours=after_hours)
 
 
 if __name__ == "__main__":

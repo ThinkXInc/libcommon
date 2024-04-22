@@ -1,11 +1,12 @@
 from mongoengine import Document, StringField, DateTimeField, ObjectIdField
 from datetime import datetime
+import pytz
 from bson import ObjectId
 
 class MongoModel(Document):
     # Generic Fields
-    created = DateTimeField(default=datetime.utcnow)
-    updated = DateTimeField(default=datetime.utcnow)
+    created = DateTimeField(default=lambda: datetime.now(pytz.utc))  # timezone-aware UTC datetime
+    updated = DateTimeField(default=lambda: datetime.now(pytz.utc))  # timezone-aware UTC datetime
     
     # Meta Information
     meta = {
