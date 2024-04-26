@@ -140,14 +140,21 @@ def format_check(field_name, expected_type):
         @wraps(f)
         def wrapper(*args, **kwargs):
             json_data = request.json
-            value = json_data.get(field_name)
-            if not isinstance(value, expected_type):
-                lang = kwargs.get('lang', DEFAULT_LANG)
-                g.errors.append(InvalidFormatErrorFormat(
-                    field_name=field_name,
-                    value=str(value),
-                    lang=lang))
-                logger.debug(f"Invalid format for field: {field_name}, expected type: {expected_type.__name__}, got: {type(value).__name__}")
+            if field_name in json_data:
+                value = json_data[field_name]
+                if not isinstance(value, expected_type):
+                    lang = kwargs.get('lang', 'en')  # Default language
+                    logger.debug(f"Request {request.method} {request.url} data: {request.json}")
+                    logger.debug(yellow(f"Invalid format for field: {field_name}, expected type: {expected_type.__name__}, got: {type(value).__name__}"))
+                    if not hasattr(g, 'errors'):
+                        g.errors = []
+                    g.errors.append(InvalidFormatErrorFormat(
+                        field_name=field_name,
+                        value=str(value),
+                        lang=lang))
+            else:
+                logger.debug(f"Field '{field_name}' is missing in request data: {request.json}")
+            logger.debug(f"Processing function {f.__name__} with args {args} and kwargs {kwargs}")
             return f(*args, **kwargs)
         return wrapper
     return decorator

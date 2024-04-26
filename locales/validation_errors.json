@@ -26,6 +26,15 @@
         "ar": "يجب ألا يزيد الإدخال عن $0 حرفًا.",
         "ru": "Ввод должен быть не более $0 символов."
     },
+    "invalid_format": {
+        "en": "The input format is invalid.",
+        "ja": "入力値のデータ型が正しくありません。",
+        "zh": "输入格式无效。",
+        "fr": "Le format de saisie est invalide.",
+        "es": "El formato de entrada es inválido.",
+        "ar": "تنسيق الإدخال غير صالح.",
+        "ru": "Формат ввода недействителен."
+    },
     "email_format": {
         "en": "Use the standard email format. e.g. name@domain.com.",
         "ja": "正しいメールアドレス形式で入力してください。 (例) name@domain.com.",
