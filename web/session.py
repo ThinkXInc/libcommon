@@ -222,6 +222,7 @@ class Session:
             session.sid = str(uuid4())
             sessions_key = f'{cls.SESSIONS_PREFIX}{user_id}'
             cls.__redis.sadd(sessions_key, session.sid)
+            cls.__redis.set(f"user_id:{session_id}", user_id)  # Store reverse mapping
             logger.info(cyan(f"Session started for user {user_id} with session ID {session.sid}."))
         except redis.RedisError as e:
             logger.error(red(f"Error starting session for user {user_id}: {e}"))
@@ -235,6 +236,7 @@ class Session:
                 sessions_key = f'{Session.SESSIONS_PREFIX}{user_id}'
                 Session.__redis.delete(sessions_key)
                 Session.__redis.delete(Session.SESSION_PREFIX + session.sid)
+                Session.__redis.delete(f"user_id:{session.sid}")
                 session.clear()
                 logger.info(light_green(f"Session cleared for user {user_id}."))
             except redis.RedisError as e:
@@ -265,3 +267,20 @@ class Session:
         except redis.RedisError as e:
             logger.error(f"Error counting sessions for user {user_id}: {e}")
             return 0
+
+    @classmethod
+    def get_user_id_from_session_id(cls, session_id: str) -> int:
+        """Retrieve user ID using session ID from Redis."""
+        reverse_session_key = f'user_id:{session_id}'
+        try:
+            user_id = cls.__redis.get(reverse_session_key)
+            if user_id is not None:
+                user_id = int(user_id.decode('utf-8'))
+                logger.info(f"User ID {user_id} retrieved from session ID {session_id}.")
+                return user_id
+            else:
+                logger.debug(f"No user ID found for session ID {session_id}.")
+                return None
+        except redis.RedisError as e:
+            logger.error(f"Error retrieving user ID from session ID {session_id}: {e}")
+            return None
