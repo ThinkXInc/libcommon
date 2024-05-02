@@ -222,7 +222,7 @@ class Session:
             session.sid = str(uuid4())
             sessions_key = f'{cls.SESSIONS_PREFIX}{user_id}'
             cls.__redis.sadd(sessions_key, session.sid)
-            cls.__redis.set(f"user_id:{session_id}", user_id)  # Store reverse mapping
+            cls.__redis.set(f"user_id:{session.sid}", user_id)  # Store reverse mapping
             logger.info(cyan(f"Session started for user {user_id} with session ID {session.sid}."))
         except redis.RedisError as e:
             logger.error(red(f"Error starting session for user {user_id}: {e}"))
