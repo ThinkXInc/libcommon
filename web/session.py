@@ -278,9 +278,9 @@ class Session:
         Returns:
             user_id (str): The user ID associated with the session or None if not found.
         """
-        user_session_key = f'{cls.USER_SESSION_KEY}{session_id}'
+        user_session_key = f'user_id:{session_id}'
         try:
-            user_id = cls.__redis.get(f"user_id:{session_id}")
+            user_id = cls.__redis.get(user_session_key)
             if user_id is not None:
                 user_id = user_id.decode('utf-8')  # Properly decode from bytes to string
                 logger.info(f"User ID '{user_id}' retrieved from session ID '{session_id}'.")
