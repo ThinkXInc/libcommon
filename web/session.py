@@ -269,18 +269,25 @@ class Session:
             return 0
 
     @classmethod
-    def get_user_id_from_session_id(cls, session_id: str) -> int:
-        """Retrieve user ID using session ID from Redis."""
-        reverse_session_key = f'user_id:{session_id}'
+    def get_user_id_from_session_id(cls, session_id: str) -> str:
+        """Retrieve user ID from a given session ID.
+
+        Args:
+            session_id (str): The session ID to query the user ID from.
+
+        Returns:
+            user_id (str): The user ID associated with the session or None if not found.
+        """
+        user_session_key = f'{cls.USER_SESSION_KEY}{session_id}'
         try:
-            user_id = cls.__redis.get(reverse_session_key)
+            user_id = cls.__redis.get(f"user_id:{session_id}")
             if user_id is not None:
-                user_id = int(user_id.decode('utf-8'))
-                logger.info(f"User ID {user_id} retrieved from session ID {session_id}.")
+                user_id = user_id.decode('utf-8')  # Properly decode from bytes to string
+                logger.info(f"User ID '{user_id}' retrieved from session ID '{session_id}'.")
                 return user_id
             else:
-                logger.debug(f"No user ID found for session ID {session_id}.")
+                logger.debug(f"No user ID found for session ID '{session_id}'.")
                 return None
         except redis.RedisError as e:
-            logger.error(f"Error retrieving user ID from session ID {session_id}: {e}")
+            logger.error(f"Error retrieving user ID from session ID '{session_id}': {e}")
             return None
