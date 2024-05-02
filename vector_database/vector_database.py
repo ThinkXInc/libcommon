@@ -15,7 +15,7 @@ from libcommon.vector_database.sentence_encoder import SentenceEncoder
 from libcommon.logger import Logger
 logger = Logger('VectorDatabase')
 logger_ = Logger('VectorDatabase_', simple=True)
-logLevel = logger.INFO
+logLevel = logger.DEBUG
 logger.setLevel(logLevel)
 logger_.setLevel(logLevel)
 from libcommon.color import *
@@ -269,6 +269,7 @@ class VectorDatabase:
             "query_vector": embedding,
             "limit": num_results
         }
+        logger.debug(f'trying to run search in vector db by query {query}..')
 
         if not isinstance(metadata, dict):
             raise TypeError(f'metadata must be type of dict but {type(metadata)}')
@@ -278,25 +279,32 @@ class VectorDatabase:
         if filter_conditions:
             query["query_filter"] = Filter(must=filter_conditions) if must_match_any else Filter(should=filter_conditions)
 
-
         try:
             results = self.client.search(**query, with_vectors=False, with_payload=True)
+            documents = [Document(
+                id=r.id,
+                payload=r.payload,
+                vector=r.vector if r.vector else []  # Use an empty list if vector is None
+            ) for r in results]
+
+            logger.info(cyan(f'{len(documents)} documents found by query: {text}'))
+            return documents
+
+        except UnexpectedResponse as e:
+            if e.status_code == 404:
+                logger.info(yellow("No documents found matching the criteria."))
+                return []
+            else:
+                logger.error(red(f'Search error with status {e.status_code}: {e.reason_phrase}'))
+                raise  # Re-raise the exception for other unexpected statuses
+
         except ApiException as e:
-            logger.error(red(f'search error: {e}'))
+            logger.error(red(f'Search error: {e}'))
+            raise  # Re-raise other API exceptions
 
-        logger.debug(f'Search results ')
-        logger.debug(f'query {query}')
-        logger.debug(bold(f'\n {results}'))
-
-        documents = [Document(
-            id=r.id,
-            payload=r.payload,
-            vector=r.vector if r.vector else []  # Use an empty list if vector is None
-        ) for r in results]
-
-        logger.info(cyan(f'{len(documents)} documents found by query:{text}'))
-
-        return documents
+        except Exception as e:
+            logger.error(red(f'Unexpected error during search: {e}'))
+            raise  # Re-raise unexpected exceptions
 
 
     def find_one(
