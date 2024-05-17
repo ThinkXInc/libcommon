@@ -5,7 +5,7 @@ import re
 from functools import wraps, partial
 
 from config import Config, check_config
-from models.data.user import User, UnauthorizedAccessError, UserNotFoundError
+from models.data.user import User, UnauthorizedAccessError, UserNotFoundError  # NEEDSFIX: don't depend on data.user
 
 from libcommon.language import Language
 from libcommon.locale import Locale
