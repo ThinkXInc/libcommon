@@ -121,6 +121,9 @@ class Logger:
 
         self.logger.setLevel(level)
 
+    def getEffectiveLevel(self):
+        return self.logger.getEffectiveLevel()
+
     def _get_caller_details(self):
         """Get details of the caller method for logging purposes."""
         frame = inspect.currentframe()

@@ -263,6 +263,15 @@ class VectorDatabase:
             List[Document]: List of matching documents.
         """
         embedding = self.encoder(text).squeeze().tolist()
+        logger.debug(f'Text: "{text}" is converted to embedding with size {len(embedding)}.')
+
+        if logger.getEffectiveLevel() == logger.DEBUG:
+            try:
+                total_docs = self.count(collection_name)
+                logger.debug(yellow(f'Total documents in collection "{collection_name}": {total_docs}'))
+            except ApiException as e:
+                logger.error(red(f'Error fetching document count from collection "{collection_name}": {e}'))
+                raise
 
         query = {
             "collection_name": collection_name,
@@ -302,9 +311,37 @@ class VectorDatabase:
             logger.error(red(f'Search error: {e}'))
             raise  # Re-raise other API exceptions
 
-        except Exception as e:
-            logger.error(red(f'Unexpected error during search: {e}'))
-            raise  # Re-raise unexpected exceptions
+        logger.debug(f'Search results ')
+        logger.debug(f'query {query}')
+        logger.debug(bold(f'\n {results}'))
+
+        documents = [Document(
+            id=r.id,
+            payload=r.payload,
+            vector=r.vector if r.vector else []  # Use an empty list if vector is None
+        ) for r in results]
+
+        logger.info(cyan(f'{len(documents)} documents found in collection {collection_name} by query:{text}'))
+
+        return documents
+
+    def count(self, collection_name: str) -> int:
+        """
+        Count the total number of documents in a specified collection.
+
+        Args:
+            collection_name (str): The name of the collection to count documents in.
+
+        Returns:
+            int: The total number of documents in the collection.
+        """
+        try:
+            count_result = self.client.count(collection_name=collection_name, exact=True)
+            logger.debug(f'count (all) result for collection {collection_name} -> {count_result}')
+            return count_result.count
+        except ApiException as e:
+            logger.error(red(f'Error fetching document count from collection "{collection_name}": {e}'))
+            raise
 
 
     def find_one(
