@@ -47,7 +47,7 @@ REDIS_SESSION_REQUIRED_KEYS = [
     'REDIS_SESSION_HOST',
     'REDIS_SESSION_PORT',
     'REDIS_SESSION_DB_NUMBER',
-    'REDIS_SESSION_EXPIRATION_PERIOD'
+    'REDIS_SESSION_EXPIRATION_TIME_SEC'
 ]
 
 # Check if all keys and values are satisfied
@@ -100,7 +100,7 @@ class RedisSessionInterface(SessionInterface):
         """
         if session.permanent:
             return app.permanent_session_lifetime
-        return timedelta(days=Config.REDIS_SESSION_EXPIRATION_PERIOD)
+        return timedelta(days=Config.REDIS_SESSION_EXPIRATION_TIME_SEC)
 
     def open_session(self, app, request):
         """Overrides SessionInterface.open_session()
