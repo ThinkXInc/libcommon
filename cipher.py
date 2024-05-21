@@ -27,7 +27,7 @@ import base64
 # Logger
 from libcommon.logger import Logger
 logger = Logger()
-logger.setLevel(logger.DEBUG)
+logger.setLevel(logger.INFO)
 from libcommon.color import *
 
 # Config
