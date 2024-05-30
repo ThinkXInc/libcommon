@@ -55,7 +55,7 @@ class Mail:
             logger.error(red(f"Failed to initialize SES client: {e}"))
             raise Exception(f"Failed to initialize SES client: {e}")
 
-    def send(self, sender, reply_to, recipient, subject, text, html):
+    def send(self, sender, reply_to, recipient, subject, text, html, bcc=None):
         """
         Send an email using the provided parameters.
 
@@ -66,6 +66,8 @@ class Mail:
             subject (str): The subject of the email.
             text (str): The plain text version of the email.
             html (str): The HTML version of the email.
+            bcc (list, optional): List of email addresses for Bcc. Defaults to None.
+
 
         Returns:
             dict: The response from the AWS SES service.
@@ -74,12 +76,14 @@ class Mail:
             MailSendError: If the email cannot be sent.
         """
         try:
+            destination = {
+                'ToAddresses': [recipient],
+            }
+            if bcc:
+                destination['BccAddresses'] = bcc
+
             response = self.client.send_email(
-                Destination={
-                    'ToAddresses': [
-                        recipient,
-                    ],
-                },
+                Destination=destination,
                 Message={
                     'Body': {
                         'Html': {
