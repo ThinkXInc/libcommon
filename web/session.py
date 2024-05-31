@@ -188,7 +188,7 @@ class Session:
         """
         user_id = session.get(cls.SESSION_KEY)
         if user_id:
-            logger.debug(f"User ID retrieved from session: {user_id}")
+            logger.debug(cyan(f"User ID retrieved from session: {user_id}"))
         else:
             logger.debug("No user ID found in session.")
         return user_id
