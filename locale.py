@@ -100,6 +100,34 @@ class Locale:
                 data.update(json.load(f))
         return data
 
+    def add_locale_file(self, new_file_path: str):
+        """
+        Adds a new locale file to the current Locale instance.
+
+        Args:
+            new_file_path (str): The path to the new locale file to be loaded.
+
+        Raises:
+            FileNotFoundError: If the new file path does not exist.
+            ValueError: If the file content is not a valid JSON.
+        """
+        # Ensure the file exists
+        if not os.path.exists(new_file_path):
+            raise FileNotFoundError(f"No file found at {new_file_path}")
+
+        # Load the new locale file
+        with open(new_file_path, 'r') as file:
+            new_data = json.load(file)
+
+        # Update the locale dictionary with new data
+        self.__dict__.update(new_data)
+
+        # Add new file path to the list of file paths
+        self.__file_paths__.append(new_file_path)
+
+        logger.debug(light_green(f'Added new locale file: {new_file_path}'))
+        logger.info(f'Locale data updated with file: {new_file_path}')
+
     def get(self, key: str, lang: str, locale_args: list = None) -> str:
         """
         Retrieves a localized message from the json data based on the provided key and language.
