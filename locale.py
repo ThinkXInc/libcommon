@@ -205,7 +205,9 @@ class Locale:
         for key, d in self.__dict__.items():
             for lang in self.__required_langs__:
                 if lang not in d:
-                    assert False, f'{key} doesn\'t include lang {lang}' 
+                    message = f'{key} doesn\'t include lang {lang}'
+                    logger.error(red(message))
+                    assert False, message
         return True
  
     @staticmethod
