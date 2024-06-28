@@ -1,6 +1,6 @@
 # libcommon/web/flask_helpers.py
 from typing import Optional
-from flask import request, g
+from flask import request, g, abort
 import re
 from functools import wraps, partial
 
@@ -37,7 +37,8 @@ REQUIRED_KEYS = [
 check_config(Config, REQUIRED_KEYS)
 
 DEFAULT_LANG = Config.DEFAULT_LANG
-LANG_NAME_MAP = Language.lang_label_map(only=['en', 'ja', 'zh'])
+AVAILABLE_LANGS = ['en', 'ja', 'zh', 'ru', 'es', 'ar', 'fr']
+LANG_NAME_MAP = Language.lang_label_map(only=AVAILABLE_LANGS)
 
 def language_wrapper(func):
     @wraps(func)
@@ -59,6 +60,10 @@ def language_wrapper(func):
         else:
             lang = kwargs.get('lang', DEFAULT_LANG)
             logger.debug(f"Language not found in url. set from default or kwargs: {lang}")
+
+        if lang not in AVAILABLE_LANGS:
+            logger.info(f"Attempted to access unsupported language: {lang}")
+            abort(404) 
 
         # Step 4: Set the chosen language
         lang_name = LANG_NAME_MAP.get(lang, LANG_NAME_MAP.get(DEFAULT_LANG))
