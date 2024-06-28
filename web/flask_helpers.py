@@ -1,6 +1,6 @@
 # libcommon/web/flask_helpers.py
 from typing import Optional
-from flask import request, g, abort
+from flask import request, g, abort, Response
 import re
 from functools import wraps, partial
 
@@ -33,8 +33,13 @@ logger.setLevel(logger.DEBUG)
 
 REQUIRED_KEYS = [
     'DEFAULT_LANG',
+    'BASIC_AUTH_USERNAME',
+    'BASIC_AUTH_PASSWORD',
 ]
 check_config(Config, REQUIRED_KEYS)
+
+BASIC_AUTH_USERNAME = Config.BASIC_AUTH_USERNAME
+BASIC_AUTH_PASSWORD = Config.BASIC_AUTH_PASSWORD
 
 DEFAULT_LANG = Config.DEFAULT_LANG
 AVAILABLE_LANGS = ['en', 'ja', 'zh', 'ru', 'es', 'ar', 'fr']
@@ -72,6 +77,25 @@ def language_wrapper(func):
 
         return func(*args, **kwargs)
     return decorated_function
+
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        def check_auth(username, password):
+            return username == BASIC_AUTH_USERNAME and password == BASIC_AUTH_PASSWORD
+
+        def authenticate():
+            return Response(
+            'Could not verify your access level for that URL.\n'
+            'You have to login with proper credentials', 401,
+            {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated
 
 def content_type_check_json(f):
     @wraps(f)
