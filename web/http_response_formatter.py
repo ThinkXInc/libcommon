@@ -53,14 +53,16 @@ class APIErrorFormat(BaseModel):
     field_name: str = Field(default=None, example='user_id')  # Optional if you don't always need a key
     code: ErrorCode = ErrorCode.BAD_REQUEST
     message: str = Field(..., example='Error message here.')
+    extra_data: dict = Field(default_factory=dict)
 
     def response_json(self) -> tuple:
-        return jsonify({
+        base_response = {
             'field_name': self.field_name,
             'code': self.code.value,
             'message': self.message,
             'reason': self.code.name
-        })
+        }
+        return jsonify({**base_response, **self.extra_data})
 
     def http_response(self) -> tuple:
         return self.response_json(), self.code.value

@@ -29,9 +29,9 @@ class BadRequestAPIErrorFormat(APIErrorFormat):
         super().__init__(field_name=field_name, code=ErrorCode.BAD_REQUEST, message=message)
 
 class UnauthorizedAPIErrorFormat(APIErrorFormat):
-    def __init__(self, lang: str, field_name: str = '', message: str = None):
+    def __init__(self, lang: str, field_name: str = '', message: str = None, redirect_url=None):
         message = message if message else get_locale_text(LOCALE_FILE, 'unauthorized', lang)
-        super().__init__(field_name=field_name, code=ErrorCode.UNAUTHORIZED, message=message)
+        super().__init__(field_name=field_name, code=ErrorCode.UNAUTHORIZED, message=message, extra_data={'redirect_url': redirect_url})
 
 class RateLimitExceededAPIErrorFormat(APIErrorFormat):
     def __init__(self, lang: str, field_name: str = '', message: str = None):
