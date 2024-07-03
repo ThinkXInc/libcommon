@@ -279,7 +279,7 @@ class VectorDatabase:
             "limit": num_results
         }
         query_to_log = dict(query)
-        query_to_log['query_vector'] = f'{query.get('query_vector', [])[:8]}...'
+        query_to_log['query_vector'] = f"{query.get('query_vector', [])[:8]}..."
         logger.debug(f'trying to run search in vector db by query {query_to_log}..')
 
         if not isinstance(metadata, dict):
