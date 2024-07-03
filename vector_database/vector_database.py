@@ -278,7 +278,9 @@ class VectorDatabase:
             "query_vector": embedding,
             "limit": num_results
         }
-        logger.debug(f'trying to run search in vector db by query {query}..')
+        query_to_log = dict(query)
+        query_to_log['query_vector'] = query.get('query_vector', [])[:3]
+        logger.debug(f'trying to run search in vector db by query {query_to_log}..')
 
         if not isinstance(metadata, dict):
             raise TypeError(f'metadata must be type of dict but {type(metadata)}')
@@ -342,7 +344,6 @@ class VectorDatabase:
         except ApiException as e:
             logger.error(red(f'Error fetching document count from collection "{collection_name}": {e}'))
             raise
-
 
     def find_one(
             self,
@@ -465,7 +466,7 @@ class VectorDatabase:
                 logger.error(red(f'Failed to delete document with id {document.id}:\n{str(e)}'))
                 return False
         else:
-            logger.warning(f'Document with {find_key}={find_value} not found in collection {collection_name}')
+            logger.warning(yellow(f'Document with {find_key}={find_value} not found in collection {collection_name}'))
             return False
 
     def delete_collection(self, collection_name: str) -> None:
@@ -478,4 +479,26 @@ class VectorDatabase:
             self.client.delete_collection(collection_name)
             logger.info(magenta(f'Deleted collection {collection_name}'))
         else:
-            logger.warning(f'Collection {collection_name} does not exist, skipping deletion...')
+            logger.warning(yellow(f'Collection {collection_name} does not exist, skipping deletion...'))
+
+    def list_all_in_collection(self, collection_name: str, limit=1000000, with_payload=False, with_vectors=False) -> List[str]:
+        """List all document IDs from a specific collection."""
+        try:
+            # Use a neutral query vector. Depending on the vector dimensions and norm, adjust accordingly.
+            neutral_vector = [0.0] * self.embedding_dim  # Assuming vectors are normalized and same dimension
+            logger.debug(f"Using neutral vector for listing IDs: {neutral_vector[:10]}..")
+            
+            # Perform the search
+            results = self.client.search(
+                collection_name=collection_name,
+                query_vector=neutral_vector,
+                limit=limit,  # Set a high limit; adjust based on your dataset size and expected results
+                with_payload=with_payload,  # Do not retrieve any payload data
+                with_vectors=with_vectors # Do not retrieve vector data
+            )
+            logger.debug(f"Search completed. Number of results: {len(results)}")
+            logger.debug(f"Documents retrieved: {results}")
+            return results
+        except Exception as e:
+            logger.error(red(f"Failed to list documents: {e}"))
+            raise
