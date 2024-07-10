@@ -278,9 +278,12 @@ class VectorDatabase:
             "query_vector": embedding,
             "limit": num_results
         }
-        query_to_log = dict(query)
-        query_to_log['query_vector'] = f"{query.get('query_vector', [])[:8]}..."
-        logger.debug(f'trying to run search in vector db by query {query_to_log}..')
+        if 'query_vector' in query and isinstance(query['query_vector'], list):
+            query_for_logging = query.copy()
+            query_for_logging['query_vector'] = f"{query['query_vector'][:5]}.."
+            logger.debug(f'trying to run search in vector db by query {query_for_logging}..')
+        else:
+            logger.debug(f'trying to run search in vector db by query {query}..')
 
         if not isinstance(metadata, dict):
             raise TypeError(f'metadata must be type of dict but {type(metadata)}')
