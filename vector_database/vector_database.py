@@ -77,8 +77,10 @@ class VectorDatabase:
     def collection_exists(self, collection_name) -> bool:
         """Checks if a collection already exists in the store."""
         exists = collection_name in [c.name for c in self.client.get_collections().collections]
-        logger.debug(f'Collection {collection_name} does'
-                     f'{"" if exists else " not"} exist in the database')
+        if exists:
+            logger.debug(f'Collection {collection_name} exist in the database')
+        else:
+            logger.debug(f'[WARNING] Collection {collection_name} does not exist in the database')
         return exists
 
     def chat_history_collection_name(self, user_id):
@@ -262,8 +264,23 @@ class VectorDatabase:
         Returns:
             List[Document]: List of matching documents.
         """
-        embedding = self.encoder(text).squeeze().tolist()
-        logger.debug(f'Text: "{text}" is converted to embedding with size {len(embedding)}.')
+        try:
+            logger.debug(f"Starting encoding for text: {text[:30]}...")  # Log the start of an operation
+            embedding = self.encoder(text).squeeze()
+            logger.debug(f"Generated embedding of size {embedding.size()} for text.")  # Confirm the size of the output
+
+            if embedding.size(0) == 0:
+                raise ValueError("Empty embedding generated, check input text and model behavior.")
+
+            embedding_list = embedding.tolist()
+            logger.debug(f"Embedding converted to list with length {len(embedding_list)}.")  # Check final list size
+
+            # Further operations...
+        except Exception as e:
+            logger.error(f"Failed during search operation: {e}")
+            raise
+
+        logger.debug(green(f'Text: "{text}" converted to embedding with size {len(embedding)}.'))
 
         if logger.getEffectiveLevel() == logger.DEBUG:
             try:
