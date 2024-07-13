@@ -17,7 +17,6 @@ class SentenceEncoder:
     def __init__(
             self,
             checkpoint: str,
-            tokenizer,
             embedding_dim: int,
             max_context_length: int,
             device: str
@@ -36,16 +35,17 @@ class SentenceEncoder:
         logger.info(f'Load model from checkpoint {self.checkpoint} to device {self.device}..')
         self.model = AutoModel.from_pretrained(checkpoint).to(device)
 
-        # if tokenizer check point is not set, use model's
-        if tokenizer:
-            logger.info(cyan(f"Using provided tokenizer."))
-        else:
-            logger.error(red(f"tokenizer is neccessary to initialize SentenceEncoder."))
-            assert False
-        self.tokenizer = tokenizer
-
         self.max_context_length = max_context_length
         self.embedding_dim = embedding_dim
+
+        embedding_size = self.model.get_input_embeddings().num_embeddings
+
+        self.tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+        vocab_size = len(self.tokenizer.vocab)
+        logger.info(f"Model embedding size: {embedding_size} vocab size: {vocab_size}")
+        if vocab_size > embedding_size:
+            logger.error(red(f"Tokenizer vocab size {vocab_size} exceeds model's embedding capacity {embedding_size}."))
+            raise ValueError("Tokenizer's vocabulary size exceeds model's embedding capacity.")
 
     def sentence_to_vec(self, sentence: str) -> torch.Tensor:
         """Returns the embedding of the provided sentence.
@@ -60,8 +60,11 @@ class SentenceEncoder:
         #encoded_input = self.tokenizer(sentence, padding=True, truncation=True, return_tensors='pt').to(self.device)
         encoded_input = self.tokenizer(sentence, padding=True, truncation=True, max_length=self.max_context_length, return_tensors='pt').to(self.device)
         logger.debug(cyan(f'Encoded => sentence_to_vec():\n{sentence}\n-> {encoded_input}'))
+        logger.debug(f"Tensor shape: {encoded_input['input_ids'].shape}")
+        logger.debug(f"Attention mask shape: {encoded_input['attention_mask'].shape}")
 
         max_vocab_size = self.tokenizer.vocab_size  # Make sure this property matches your tokenizer's attribute
+        logger.debug(f'tokenizer.vocab_size {max_vocab_size}')
         if torch.any(encoded_input['input_ids'] >= max_vocab_size):
             logger.error("Token ID exceeds vocabulary size")
         # Check which tokens are out of range

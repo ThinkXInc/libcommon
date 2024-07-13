@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Dict, List, Union, Optional
 from uuid import uuid4
 from datetime import datetime
+import torch
 
 from pydantic import ValidationError
 from qdrant_client import QdrantClient
@@ -298,6 +299,10 @@ class VectorDatabase:
         if 'query_vector' in query and isinstance(query['query_vector'], list):
             query_for_logging = query.copy()
             query_for_logging['query_vector'] = f"{query['query_vector'][:5]}.."
+            logger.debug(f'trying to run search in vector db by query {query_for_logging}..')
+        elif 'query_vector' in query and isinstance(query['query_vector'], torch.Tensor):
+            query_for_logging = query.copy()
+            query_for_logging['query_vector'] = f"{query['query_vector'].tolist()[:5]}.."
             logger.debug(f'trying to run search in vector db by query {query_for_logging}..')
         else:
             logger.debug(f'trying to run search in vector db by query {query}..')
