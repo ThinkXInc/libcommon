@@ -161,6 +161,8 @@ class Locale:
             for i, arg in enumerate(locale_args):
                 if f'${i}' not in m:
                     raise ValueError(f'${i} not in the message:{m}')
+                if isinstance(arg, int) or isinstance(arg, float):
+                    arg = str(arg)
                 m = m.replace(f'${i}', arg)
 
         logger.debug(f'locale generated message -> "{m}" (key: {key} lang: {lang}) ')
