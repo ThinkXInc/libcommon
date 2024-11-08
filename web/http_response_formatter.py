@@ -40,7 +40,7 @@ class SuccessFormat(BaseModel):
 
     def response_json(self) -> dict:
         return jsonify({
-            **self.data,
+            **(self.data if self.data is not None else {}),
             'code': self.code.value,
             'message': self.message
         })
