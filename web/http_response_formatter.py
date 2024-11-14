@@ -16,6 +16,7 @@ class SuccessCode(Enum):
     ACCEPTED = 202
     PARTIAL_INFORMATION = 203
     NO_CONTENT = 204  # The server successfully processed the request, and is not returning any content.
+    PARTIAL_SUCCESS = 207
 
 class ErrorCode(Enum):
     # 4xx
