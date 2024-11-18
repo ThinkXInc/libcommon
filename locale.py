@@ -119,6 +119,9 @@ class Locale:
         with open(new_file_path, 'r') as file:
             new_data = json.load(file)
 
+        # Count the number of keys in the loaded JSON
+        key_count = len(new_data.keys())
+
         # Update the locale dictionary with new data
         self.__dict__.update(new_data)
 
@@ -127,6 +130,7 @@ class Locale:
 
         logger.debug(light_green(f'Added new locale file: {new_file_path}'))
         logger.info(f'Locale data updated with file: {new_file_path}')
+        logger.debug(f'The loaded JSON file contains {key_count} keys.')
 
     def get(self, key: str, lang: str, locale_args: list = None) -> str:
         """
