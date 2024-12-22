@@ -9,7 +9,8 @@ from transformers import AutoTokenizer, AutoModel
 
 from libcommon.logger import Logger
 logger = Logger('SentenceEncoder')
-logger.setLevel(logger.DEBUG)
+logger.setLevel(logger.INFO)
+#logger.setLevel(logger.DEBUG)
 from libcommon.color import *
 
 class SentenceEncoder:
