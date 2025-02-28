@@ -178,7 +178,7 @@ class Locale:
         returns:
             - messages_dict (json) : a text collection json object including all languages
         """
-        self.check_langs()
+        #self.check_langs()
         return json.dumps(
             self.__dict__,
             sort_keys=True,
@@ -199,7 +199,7 @@ class Locale:
         returns:
             - messages_dict (dict) : a text collection dict object including all langs
         """
-        self.check_langs()
+        #self.check_langs()
         return self.__dict__
 
     def check_langs(self):
