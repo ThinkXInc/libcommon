@@ -42,7 +42,7 @@ BASIC_AUTH_USERNAME = Config.BASIC_AUTH_USERNAME
 BASIC_AUTH_PASSWORD = Config.BASIC_AUTH_PASSWORD
 
 DEFAULT_LANG = Config.DEFAULT_LANG
-AVAILABLE_LANGS = ['en', 'ja', 'zh', 'ru', 'es', 'ar', 'fr']
+AVAILABLE_LANGS = ['en', 'ja', 'zh', 'ru', 'es', 'ar', 'fr']  # TODO: use Config.AVAILABLE_LANGS
 LANG_NAME_MAP = Language.lang_label_map(only=AVAILABLE_LANGS)
 
 def language_wrapper(func):
