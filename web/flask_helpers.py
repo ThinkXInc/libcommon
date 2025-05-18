@@ -63,8 +63,13 @@ def language_wrapper(func):
             lang = url_lang
             logger.debug(f"Language set from URL: {lang}")
         else:
-            lang = kwargs.get('lang', DEFAULT_LANG)
-            logger.debug(f"Language not found in url. set from default or kwargs: {lang}")
+            query_lang = request.args.get('lang', None)
+            if query_lang:
+                lang = query_lang
+                logger.debug(f"Language set from Query String: {lang}")
+            else:
+                lang = kwargs.get('lang', DEFAULT_LANG)
+                logger.debug(f"Language not found in url. set from default or kwargs: {lang}")
 
         if lang not in AVAILABLE_LANGS:
             logger.info(f"Attempted to access unsupported language: {lang}")
@@ -255,6 +260,7 @@ def handle_error(error, error_class, lang):
         return error_instance.http_response()
     return inner_handle_error(error)
 
+# FIXME: to avoid dependence to User, move this to session.py or a new file
 def session_helper(f):
     """
 
