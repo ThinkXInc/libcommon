@@ -18,4 +18,5 @@ ipython_config.py
 
 # virtualenv
 venv/
+.venv/
 
