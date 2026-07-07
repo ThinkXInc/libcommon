@@ -89,3 +89,9 @@
 - 連鎖 de-config(挙動保存): `locale.py` は `_DEFAULT_LANG='en'`+`configure_locale()`(getlang のフォールバックのみ・T-L4 非行使)。`locale_helper.py` は既定 `lang='en'`(呼出側は常に lang 明示)。`google_oauth_helper.py` は `_client_id`+`configure_google_oauth()`(特性テスト非行使)。
 - E-12(完了条件#2 の残差・D-21 記録): `grep 'from config import|from models' libcommon/web/` は **live chain で 0件**だが、死コード `web/errors_v1.py:2` と `web/[DEPRECATE]api_errors.py:59` の2件が残る。両者は消費0の死コードで **L-3(api_errors 削除)/ L-4(errors_v1 attic)で除去**され、その時点で literally 0件になる。#2 の意図(消費される連鎖の脱 config)は達成済み。
 - 完了条件結果: #1 素の import exit 0 ✅ / #3 特性テスト新 API 経由・ゴールデン不変 68 passed ✅ / #4 app_stub 撤去後 green ✅ / #5 ruff・pyright exit 0 ✅ / #2 上記 E-12。
+
+---
+
+## L-3 死荷重削除の記録
+
+- E-13(完了条件の submodule 残差・D-21 記録): `web/[DEPRECATE]api_errors.py`(705行)を `git rm`。消費者ゼロを実測確認済み('api_errors' の全ヒットはファイル自身のコメント `# api/responses/api_errors.py` のみで、import する消費者は皆無)。libcommon 内 grep は 0件。ただし完了条件 grep `grep -rn 'api_errors' libcommon quantz-web thinkx` は **quantz-web の submodule スナップショット3件**(`web-server/libcommon`・`vectordb_server/libcommon`・`web-server/llm/libcommon` 内の同ファイル)を拾う。これらは編集禁止の vendored スナップショットで **Q-6 の vendoring カットオーバーで更新**される。live 消費者0(#L-3 の意図)は達成。
