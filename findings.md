@@ -125,3 +125,12 @@
 - API 3型形状(`tests/golden/api_shape_*.json`): 型3 バリデーション `{code, errors, message, reason}`/400、型2 単体エラー `{field_name, code, message, reason}`/415 は live エンドポイント `/v1/en/users/create` から。型1 成功 `{code, message, user}`/200 は認証 live が harness 不可のため同一 SuccessFormat クラスの http_response() を app 文脈で凍結。
 - N-14(新発見・genuine バグ): `accounts.py:323` `users_create` が `request.json["email"]` を**検証前に直接アクセス** → email 欠落(空 json 等)で KeyError → 500。required_fields_check より前に落ちるため、本来のバリデーション 400 応答に到達しない。→ Phase 3。
 - E-15(harness 制約・D-21 記録): `models/data/user.py:294` `create_new` の一部クエリ経路を **mongomock が "Special options not supported"(NotImplementedError)で拒否** → signup 成功・認証済み経路が harness 下で実行不能。Q-2 の成功型は契約形状源(format クラス)から凍結して回避。実 MongoDB(AWS 移行 STEP2)では実行可の見込み。
+
+---
+
+## Q-3 壊れた import 修正(F-1)の記録
+
+- F-1 の dead/alive 判定(計画要請): `models/data/material_v1.py` は **web-server のどこからも import されない dead ファイル**(live な model は `material.py`。material_v1 は旧 v1・0 importer。Q-1 で app import が成功したのはこのため)。ただしファイル内では `ProcessingError`/`ResourceNotFoundError` を 7 箇所で使用(return 値)。
+- 対応(計画 L-4 注記どおり: errors_v1 に import を直さず material_v1 側をフォーマット族へ寄せる): `web/http_errors` の `BadRequestAPIErrorFormat`(ProcessingError 相当)/ `ResourceNotFoundAPIErrorFormat`(ResourceNotFoundError 相当)へ写像。メッセージは `locale.get(<key>, lang, locale_args=...)`。dead ファイルゆえ app 挙動・Q-2 ゴールデンに無影響(Q-2 5 passed・不変を確認)。
+- E-16(完了条件の submodule 残差・D-21 記録): `grep -rn 'libcommon.response' quantz-web` は **live app code で 0件**(material_v1.py 修正で達成)。残 14 件は全て編集禁止の vendored/submodule 領域: `web-server/libcommon/`・`vectordb_server/libcommon/`・`web-server/llm/libcommon/`(libcommon 旧スナップショットの `celery.py`/`errors_v1.py`/`dateutils.py`)+ `web-server/llm/queue_server/task_handler.py`(llm submodule 自体)。いずれも **Q-6 の vendoring / 各 submodule 更新で解消**。#F-1 の意図(live の壊れた import 除去)は達成。
+- 派生記録(Phase 3 候補): libcommon 原本にも `celery.py` が `libcommon.response.successes/errors`(非実在)を import する疑い(submodule コピーに同型)。celery は §5 対象外(スモークのみ)だが、libcommon 側の壊れた import として Phase 3 で確認・仕分け。
