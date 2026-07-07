@@ -168,3 +168,12 @@
 
 - L-7: `libcommon/CLAUDE.md`(契約の機械可読化)を計画全文どおり作成。**権限ブロック→解決の記録**: `.claude/settings.json` の `Write(CLAUDE.md)`/`Edit(CLAUDE.md)` が gitignore 形式で任意階層の CLAUDE.md に一致し libcommon/CLAUDE.md も阻んだ。オーナーが root 限定(`/CLAUDE.md`)へ緩和して解禁(settings は実行者不可侵のため人間が変更。D-21 停止→承認の流れ)。
 - L-8: `scripts/bake.sh <tag> <dest>`(clone→tag checkout→.git 除去→VERSION 生成→配置)を作成。**tree sha256 は `__pycache__`/`*.pyc` を除外**(v1.8)。ハッシュツールは macOS 互換で `shasum -a 256`(計画例示の `sha256sum` は macOS に無いため。挙動同値=SHA-256、findings 記録)。mechanics 検証: bake 先で `import libcommon.web.flask_helpers, libcommon.web.session` 成功(原則7=単独 import 可能を bake 先でも証明)。v2.0.0 タグを全ゲート green 時点で付与。
+
+---
+
+## Q-4 L-1 追随(新初期化 API 配線)の記録
+
+- 機構(オーナー承認): quantz-web は Q-6 まで submodule 状態だが、Q-4 は新 API を要すため **web-server/libcommon submodule ref を v2.0.0(f6f91ff)へ bump**(ファイル編集でなく gitlink 更新=保護領域の消費のみ)。vectordb_server/libcommon は web 非依存のため Q-6 まで ba9efa8 のまま。
+- 配線(挙動保存): `init_flask_app.py` に起動 wiring 追加 — `RedisSessionInterface(host,port,db,exp)`(新シグネチャ)/ `Session.configure(host,port,db)` / `configure_flask_helpers(DEFAULT_LANG, SUPPORTED_LANGS, BASIC_AUTH_*)`。注入値は旧モジュール定数と同値(DEFAULT_LANG='en'・7言語・BASIC_AUTH)→ 挙動保存。
+- `session_helper` 移設: 中央 `app_session.py` に `make_session_helper(user_loader=lambda uid: User.objects(id=uid).first(), on_no_session=UnauthorizedAccessError, on_user_not_found=UserNotFoundError)` を1回定義。10ファイル(main/accounts/studio/create/deploy/materials/payments/interviews/basic_configs/develop)は import を flask_helpers→app_session へ機械移設(`@session_helper` 使用は不変)。
+- 完了条件: Q-2 スイート green(**route 表・API 3型ゴールデンとも不変**=配線が挙動を変えていない証明。git 上で golden 無変更確認)✅ / libcommon 原本の live chain `from config import` 0件のまま ✅。
