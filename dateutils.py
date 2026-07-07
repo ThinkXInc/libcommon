@@ -17,8 +17,15 @@ import sys
 from flask import jsonify
 import pytz
 from pytz import timezone
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as _tz
 import locale
+
+# --- 時刻ドクトリン(L-5) -------------------------------------------------------
+# 保存・演算は常に **aware UTC**(tzinfo 付き)で行う。表示時のみ対象タイムゾーンへ変換する。
+# 新規コードで naive な datetime を作らない。datetime ⇄ ISO8601 文字列 ⇄ epoch数値 は
+# 正名関数(datetime_to_iso8601 / iso8601_to_datetime / datetime_to_epoch / epoch_to_datetime)
+# で相互変換する。旧名(*8061* = ISO 8601 の typo)は現挙動保存のため残置(下記コメント参照)。
+# -------------------------------------------------------------------------------
 
 sys.path.append('../')
 #from libcommon.response.api_response import ErrorResponse, ErrorCode
@@ -47,6 +54,7 @@ sys.path.append('../')
 #        return repr(f'{self.iso_formatted_string} is invalid as iso formatted timestamp.')
 
 
+# typo alias, kept for compatibility; naive-now default preserved(現挙動保存。新規は datetime_to_iso8601 を使う)
 def datetime_to_iso8061(date: datetime = None, tz=pytz.utc) -> str:
     """Converts a datetime object to its ISO 8061 string representation.
 
@@ -94,6 +102,49 @@ def iso8061_to_datetime(iso_formatted_string: str) -> datetime:
         return date_utc
 
 
+# typo alias, kept for compatibility(現挙動保存。新規は iso8601_to_datetime を使う)
+# ↑ 旧 iso8061_to_datetime は上に定義済み。以下は正名版(L-5 追加)。
+
+
+def datetime_to_iso8601(date: datetime = None, tz=pytz.utc) -> str:
+    """datetime → ISO 8601 文字列(正名版)。
+
+    ドクトリン: 既定は **aware UTC**。date=None のとき aware UTC の現在時刻を用いる
+    (旧 8061 版の naive `datetime.now()` 既定=F-8 をここで解消)。naive な date は
+    UTC とみなして aware 化してから tz へ変換する。tz は tzinfo でも文字列でも受ける。
+    """
+    if date is None:
+        date = datetime.now(pytz.utc)
+    if isinstance(tz, str):
+        tz = timezone(tz)
+    if date.tzinfo is None:
+        date = pytz.utc.localize(date)
+    return date.astimezone(tz).isoformat()
+
+
+def iso8601_to_datetime(s: str) -> datetime:
+    """ISO 8601 文字列 → aware UTC datetime(正名版)。
+
+    tz 指定の無い文字列は UTC とみなす。戻りは常に aware UTC。
+    """
+    dt = datetime.fromisoformat(s)
+    if dt.tzinfo is None:
+        dt = pytz.utc.localize(dt)
+    return dt.astimezone(pytz.utc)
+
+
+def datetime_to_epoch(dt: datetime) -> float:
+    """datetime → epoch 秒(float)。naive は UTC とみなす。"""
+    if dt.tzinfo is None:
+        dt = pytz.utc.localize(dt)
+    return dt.timestamp()
+
+
+def epoch_to_datetime(ts: float) -> datetime:
+    """epoch 秒 → aware UTC datetime。"""
+    return datetime.fromtimestamp(ts, tz=_tz.utc)
+
+
 def expiration_datetime(after_hours=48):
     """Returns the datetime after a certain number of hours from now.
 
@@ -112,8 +163,10 @@ def expiration_datetime(after_hours=48):
 
 
 def timestamp_to_time_ago_text(start_time: float, lang: str) -> str:
-    now = datetime.utcnow()
-    start_time_dt = datetime.utcfromtimestamp(start_time)
+    # L-5(F-9): deprecated な naive-UTC API を aware UTC(now(_tz.utc)/fromtimestamp(tz=_tz.utc))に置換。
+    # now も start も aware UTC なので diff は同値 → 外部挙動(=T-L5 ゴールデン)は不変。
+    now = datetime.now(_tz.utc)
+    start_time_dt = datetime.fromtimestamp(start_time, tz=_tz.utc)
     diff = now - start_time_dt
 
     if lang not in ["ja", "en", "es", "ar", "ru", "fr"]:

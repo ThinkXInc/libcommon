@@ -47,6 +47,32 @@ def test_iso8061_roundtrip():
     })
 
 
+def test_iso8601_roundtrip_canonical():
+    # 正名版: aware UTC の往復同一性
+    iso = D.datetime_to_iso8601(FIXED)
+    back = D.iso8601_to_datetime(iso)
+    assert back == FIXED
+    assert_golden('dateutils/iso8601_roundtrip', {'iso': iso, 'back_iso': back.isoformat(), 'equals': back == FIXED})
+
+
+def test_iso8601_default_is_aware_utc():
+    # 正名版の既定は aware UTC(F-8 を正名側で解消)。値は now() で非決定なので tz 性質を凍結。
+    s = D.datetime_to_iso8601()
+    parsed = D.iso8601_to_datetime(s)
+    assert_golden('dateutils/iso8601_default_utc', {
+        'ends_with_utc_offset': s.endswith('+00:00'),
+        'tzinfo': str(parsed.tzinfo),
+    })
+
+
+def test_epoch_roundtrip():
+    # datetime <-> epoch の往復同一性(戻りは aware UTC)
+    ts = D.datetime_to_epoch(FIXED)
+    back = D.epoch_to_datetime(ts)
+    assert back == FIXED
+    assert_golden('dateutils/epoch_roundtrip', {'epoch': ts, 'back_iso': back.isoformat(), 'equals': back == FIXED})
+
+
 def test_expiration_datetime():
     e = D.expiration_datetime(72)
     now = datetime.now(pytz.utc)

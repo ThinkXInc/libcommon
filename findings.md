@@ -142,3 +142,14 @@
 - 既定判断(オーナー未反転)どおり `web/api_response_v1.py`(368行)/ `web/errors_v1.py`(131行)を **`attic/` へ `git mv`**。消費者ゼロを実測確認(非 self 参照 0件)。errors_v1 は `libcommon.response.api_response`(非実在)+ `from config import Config` の二重壊れだが dead ゆえ退避で足りる。
 - `attic/README.md` に退避理由(例外 raise 型の二重定義・v2 統合判断待ち)を記録。**attic は検証の床から除外**: ruff `extend-exclude` と pyright `exclude` に `attic` を追加し、web/ 側の stale per-file-ignore(api_response_v1/errors_v1)を削除。
 - 完了条件: attic 以外で `grep 'api_response_v1|errors_v1'` 0件 ✅ / pytest 73 passed ✅ / ruff・pyright exit 0 ✅。E-12(L-1 で残った web/errors_v1 の `from config import`)は本項目の退避で live web/ から消滅。
+
+---
+
+## L-5 dateutils 正名化 + 時刻ドクトリンの記録
+
+- 正名関数を追加(旧 `*8061*` は typo=ISO **8601**。旧名は現挙動保存で残置): `datetime_to_iso8601`(既定 aware UTC。date=None で `datetime.now(pytz.utc)` → **F-8 を正名側で解消**。tz は tzinfo/文字列両対応)、`iso8601_to_datetime`(戻り aware UTC)。
+- epoch 対を追加: `datetime_to_epoch`(naive は UTC とみなす)/ `epoch_to_datetime`(aware UTC)。→ datetime ⇄ ISO8601 ⇄ epoch の三点相互変換が閉じる(往復同一性を T-L5 で凍結)。
+- F-9: `timestamp_to_time_ago_text` の内部を deprecated な naive-UTC API から aware UTC(`now(timezone.utc)`/`fromtimestamp(tz=timezone.utc)`)へ置換。**now/start とも aware UTC で diff 同値 → 外部挙動不変**(T-L5 の time_ago ゴールデン不変で機械証明。git 上で既存ゴールデン無変更を確認)。`grep 'utcnow|utcfromtimestamp' dateutils.py` 0件。
+- モジュール冒頭に UTC ドクトリンを明文化(保存・演算は aware UTC、表示時のみ変換、新規で naive を作らない)。
+- 残置(現挙動保存ゆえ・Phase 3): 旧 `datetime_to_iso8061` の既定 tz=pytz.utc は AttributeError(N-4)、旧 `iso8061_to_datetime` の異常系は未定義 `InvalidISOFormatError`(N-8)。いずれも旧名の現挙動として凍結済み。
+- 完了条件: 正名/epoch 往復・新既定 UTC 直接アサート・旧名現挙動 pytest green(76 passed)/ 旧ゴールデン不変 ✅ / grep 0件 ✅ / pyright exit 0 ✅。
