@@ -59,3 +59,22 @@
 - N-6(新発見・単位バグ): `web/session.py:103` `get_redis_expiration_time` が `timedelta(days=Config.REDIS_SESSION_EXPIRATION_TIME_SEC)` を返す。設定値の単位は秒(*_SEC)だが `days=` に渡している(3600 秒設定なら 3600 **日**の有効期限)。
 - N-7(新発見・整合): `web/session.py:223–225` `Session.start` は `sessions:{user_id}`(sadd)と `user_id:{sid}`(set)のみ書き、`session:{sid}` を書かない。`session.py:257–264` `count` は `session:{sid}` 不在の sid を `srem` して除去する。→ save_session を経ない `Session.start` 直後の `count()` は常に 0(特性テスト `session/after_start` で実測凍結: start 直後キー=`sessions:user123`+`user_id:<SID>`、count 後=`user_id:<SID>` のみ、count=0)。
 - N-8(新発見・実行時 NameError): `dateutils.py:92` `iso8061_to_datetime` の except 経路が commented-out の `InvalidISOFormatError` を参照 → 不正入力時に NameError(正常な往復は `dateutils/roundtrip` で凍結済み)。
+
+---
+
+## L-0e 床(ruff + pyright)で silence した pre-existing 債務(一括記録)
+
+完了条件: `ruff check .` / `pyright` とも exit 0(達成)。修正はせず隔離のみ(修正は各[改修]項目 / Phase 3)。設定は `ruff.toml` / `pyrightconfig.json`。
+
+- E-10(ruff, select=["F","E9"]。導入前 151 件を隔離):
+  - global ignore `F403`/`F405`(11+76=87件): `from libcommon.color import *`(F-6)が全体に蔓延し、真の未定義名検出を F405 に化けさせる。一斉修正は §5 範囲外。**この結果、星 import を持つファイルでは F821 floor が実質無効**(既知の限界。F-6 修正まで残る)。
+  - exclude: `vector_database`(§5 スモークのみ・~48件)、`tests/mongobase_test.py`・`tests/modelbase_test.py`(N-3 死テスト)、`tutorials`(ドキュメント notebook)。
+  - per-file-ignores(pre-existing 分をファイル単位で隔離。他所では有効): celery(F401,F841)/ config_helper(F401)/ dateutils(F401,F821,F841)/ discord(F401,F821)/ enumlocale(F841)/ mongobase(F401,F722,F821,F841)/ mongomodel(F401)/ web/api_response_v1(F401,F821)/ web/errors_v1(F401)/ web/flask_helpers(F401)/ web/google_oauth_helper(F541)/ web/http_response_formatter(F401)/ web/session(F541)。
+- E-11(pyright basic。導入前 44 errors を隔離):
+  - exclude: `web`(計画: まず web/ 以外)/ `tests` / `tutorials` / `vector_database` / `dateutils.py` / `discord.py` / `mongobase.py`(残余 undefined-variable を持つファイル)。
+  - global rule off(pre-existing 型精度債務): `reportArgumentType`(20)/ `reportAttributeAccessIssue`(13)/ `reportReturnType`(4)/ `reportCallIssue`(2)。`reportMissingImports`/`reportMissingModuleSource` off(§1.4 レイヤ逆転: `config`/`models`/`google` 未解決。L-1 で解消予定)。
+  - `reportUndefinedVariable` は ON 維持(床信号)。残 5 warnings は `validator.py` の `TypeVar T` 単一使用(非致命・記録のみ)。
+- N-9(新発見・F821): `discord.py:22` `send_to_discord` 未定義(§5 対象外)。
+- N-10(新発見・F821): `mongobase.py:243` `cursor` 未定義、`mongobase.py:779` `pd`(pandas)未定義(§5 対象外)。
+- N-11(新発見・F821): `web/api_response_v1.py:184` `key` 未定義(L-4「判断」領域・消費0)。
+- N-12(新発見・F722): `mongobase.py:243` forward annotation の構文エラー(§5 対象外)。

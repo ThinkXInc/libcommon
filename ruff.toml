@@ -1,0 +1,34 @@
+# L-0e: 検証の床(最小集合)。
+# F(pyflakes: F821 未定義名ほか)+ E9(構文エラー)のみ。スタイル系は入れない。
+#
+# 判断規則(§L-0e): pre-existing のエラーは**修正せず**隔離して先へ進む(修正は各[改修]項目 /
+# Phase 3)。何を黙らせたかは findings.md(E-10)に記録済み。床は新規/現状クリーンなファイルの
+# 違反を捕捉するために有効なまま残す(F821 は隔離ファイル以外で有効)。
+target-version = "py310"
+
+# .venv / 対象外サブシステム(§5: vector_database はスモークのみ)/ 死んだレガシーテスト(N-3)/
+# チュートリアル notebook(ドキュメント・非対象)を除外。
+extend-exclude = [".venv", "vector_database", "tests/mongobase_test.py", "tests/modelbase_test.py", "tutorials"]
+
+[lint]
+select = ["F", "E9"]
+# 星 import 族(F-6。`from libcommon.color import *` が全体に蔓延し未定義名検出を F405 に化けさせる)。
+# 一斉修正は範囲外(§5)。global に隔離し findings に記録。
+ignore = ["F403", "F405"]
+
+# 鋭いコード(未使用 import/変数・未定義名・構文・空 f-string)の pre-existing 分をファイル単位で隔離。
+# これにより当該コードは他ファイルでは有効に保たれる。
+[lint.per-file-ignores]
+"celery.py" = ["F401", "F841"]
+"config_helper.py" = ["F401"]
+"dateutils.py" = ["F401", "F821", "F841"]
+"discord.py" = ["F401", "F821"]
+"enumlocale.py" = ["F841"]
+"mongobase.py" = ["F401", "F722", "F821", "F841"]
+"mongomodel.py" = ["F401"]
+"web/api_response_v1.py" = ["F401", "F821"]
+"web/errors_v1.py" = ["F401"]
+"web/flask_helpers.py" = ["F401"]
+"web/google_oauth_helper.py" = ["F541"]
+"web/http_response_formatter.py" = ["F401"]
+"web/session.py" = ["F541"]

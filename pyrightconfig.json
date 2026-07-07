@@ -1,0 +1,23 @@
+{
+  "typeCheckingMode": "basic",
+  "pythonVersion": "3.10",
+  "include": ["."],
+  "exclude": [
+    ".venv",
+    "vector_database",
+    "web",
+    "tests",
+    "tutorials",
+    "**/__pycache__",
+    "dateutils.py",
+    "discord.py",
+    "mongobase.py"
+  ],
+  "extraPaths": [".."],
+  "reportMissingImports": false,
+  "reportMissingModuleSource": false,
+  "reportArgumentType": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportReturnType": "none",
+  "reportCallIssue": "none"
+}
