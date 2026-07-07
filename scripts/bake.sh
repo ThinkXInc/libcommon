@@ -28,7 +28,16 @@ git clone --quiet "$SRC" "$TARGET"
 git -C "$TARGET" checkout --quiet "$TAG"
 rm -rf "$TARGET/.git"                                    # git 履歴を除去(vendoring)
 
+# 開発専用物を焼き込みツリーから除外(P3-L8)。根拠: (a) attic の死コード等を全消費者に
+# 再配布しない、(b) vendored 配下の CLAUDE.md は消費者リポジトリで作業する将来セッションの
+# in-context を汚染する(ネスト読込)。VERSION は下で生成するため残る。
+for _dev in tests tutorials attic scripts \
+            refactor_plan.md findings.md CLAUDE.md CHANGELOG.md ruff.toml pyrightconfig.json; do
+  rm -rf "${TARGET:?}/${_dev}"
+done
+
 # tree sha256(__pycache__ / *.pyc 除外)。ファイル毎ハッシュを sort して単一ハッシュに畳む。
+# 算出は上記除外後のツリーに対して行う(消費者間 byte 同一性の再現条件を維持)。
 TREE_SHA="$(cd "$TARGET" && find . -type f \
   -not -path '*/__pycache__/*' -not -name '*.pyc' \
   | LC_ALL=C sort | xargs shasum -a 256 | shasum -a 256 | cut -d' ' -f1)"
