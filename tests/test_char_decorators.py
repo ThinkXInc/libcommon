@@ -155,13 +155,14 @@ def test_required_query_params_present_ok():
     assert_golden('decorators/required_query_present', {'body': resp.get_json(silent=True)})
 
 
-def test_required_query_params_missing_raises_nameerror():
-    # 欠落時 `handle_query_param_errors`(flask_helpers に未定義)を呼ぶ → NameError。findings 参照。
+def test_required_query_params_missing_returns_validation_error():
+    # N-5(P3-L3): 欠落時は handle_query_param_errors が ValidationErrors 族で 400 を返す
+    # (旧挙動: 未定義 handle_query_param_errors 参照による NameError)。
     @required_query_params(['q'])
     def h(lang=None, lang_name=None):
         return jsonify({'ok': True})
 
     with app.test_request_context('/?nope=1', method='GET'):
-        with pytest.raises(NameError):
-            h(lang='en')
-    assert_golden('decorators/required_query_missing_nameerror', {'raises': 'NameError'})
+        body, status = h(lang='en')
+        payload = body.get_json(silent=True)
+    assert_golden('decorators/required_query_missing', {'status': status, 'body': payload})

@@ -9,10 +9,11 @@ from libcommon.locale import Locale
 from libcommon.validator import Validator, ValidationType
 
 from libcommon.web.session import Session
-from libcommon.web.http_response_formatter import ValidationErrorFormat, ValidationErrorsFormat
+from libcommon.web.http_response_formatter import ValidationErrorFormat, ValidationErrorsFormat, ErrorCode
 from libcommon.web.validation_errors import RequiredFieldsNotSatisfiedFormat, \
-InvalidEmailFormatErrorFormat, MaxLengthExceededErrorFormat, \
+InvalidEmailFormatErrorFormat, MinLengthNotReachedErrorFormat, MaxLengthExceededErrorFormat, \
 InvalidFormatErrorFormat, RegexMatchFailedErrorFormat
+from libcommon.web.locale_helper import get_locale_text
 from libcommon.web.http_errors import InvalidContentTypeAPIErrorFormat, \
 UnexpectedAPIErrorFormat, ForbiddenAPIErrorFormat, ResourceNotFoundAPIErrorFormat, \
 BadRequestAPIErrorFormat, UnauthorizedAPIErrorFormat, RateLimitExceededAPIErrorFormat, \
@@ -142,6 +143,18 @@ def required_fields_check(required_fields):
             return f(*args, **kwargs)
         return wrapper
     return decorator
+
+def handle_query_param_errors(errors, lang):
+    """required_query_params の異常系を返す(N-5)。
+
+    required_fields_check / validate_request と同じ ValidationErrors 族で 400 を返す。
+    トップレベルの message は validate_request と同じ 'validation_error' ロケール文言。
+    新しいレスポンス外形は作らない(既存フォーマット族の http_response のみ)。
+    """
+    return ValidationErrorsFormat(
+        errors=errors,
+        message=get_locale_text('validation_errors.json', 'validation_error', lang),
+    ).http_response()
 
 def required_query_params(required_params):
     def decorator(f):
@@ -294,8 +307,9 @@ def google_oauth_token_check(field_name):
             if not token:
                 error_format = GoogleOauthTokenErrorFormat(error_message='Missing token', code=ErrorCode.UNAUTHORIZED)
                 logger.error(red(f"Missing token in field '{field_name}'"))
-                g.setdefault('errors', []).append(error_format)
-                return validate_request(kwargs.get('lang'), locale)
+                # N-5: `locale` は本スコープに存在せず validate_request も呼べない。構築済み
+                # error_format を既存の http_response で 401 として返す(短絡の意図を保存)。
+                return error_format.http_response()
 
             try:
                 # Verify the OAuth token and extract user info
