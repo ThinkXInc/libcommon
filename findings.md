@@ -39,3 +39,13 @@
 - E-5(計画書の未コミット差分): libcommon・quantz-web 両ワークツリーに `refactor_plan.md` の v1.1→v1.6 更新が未コミットで存在(`M refactor_plan.md`)。計画書は実行者にとって読み取り専用のため編集せず、実行者のコミットにも含めない(明示パス add)。v1.6 更新の commit 要否は人間判断。
 - E-6(venv 生成の環境的癖): cwd がリポジトリ直下のとき `python3.10 -m venv <path>` が `Error: No module named 'libcommon'` で失敗(`python3.10 -c` 単体は正常)。回避として `python3.10 -c "import venv; venv.create(<abspath>, with_pip=True, clear=True)"` で `.venv` を生成(成功・Python 3.10.16 / pip 24.3.1)。ensurepip は `-I` isolated 実行で cwd 非依存。原因の根治は範囲外・記録のみ。
 - E-7(gitignore): `.gitignore` は `venv/` のみ無視し `.venv/`(計画が使うパス)を無視しなかった。L-0b 環境衛生として `.venv/` を追加。
+
+---
+
+## L-0c 実行時の新発見・環境記録
+
+- N-1(新発見・構造): `locale.py`(リポジトリ直下のトップレベルモジュール)が Python 標準ライブラリ `locale` を shadow する。リポジトリ root が sys.path[0] に載る状況(例: repo root から `python -m pytest`。`-m` は cwd を先頭に追加)では、標準 `import locale`(calendar / pytest ブートストラップ等が内部で行う)が `libcommon/locale.py` に解決され、その先頭の `from libcommon.language import Language` が失敗して `ModuleNotFoundError: No module named 'libcommon'` になる。E-6 の gremlin の真因。→ Phase 3 仕分け対象。
+- N-2(新発見・非推奨): `web/http_response_formatter.py:54, 56` が pydantic V2 で非推奨の `Field(..., example=...)` 追加キーワードを使用(PydanticDeprecatedSince20 警告)。非ブロッキング。→ Phase 3 仕分け対象。
+- N-3(新発見・死荷重): `tests/mongobase_test.py:10–13` / `tests/modelbase_test.py:10–16` が不在モジュール(`nose`, `tools.*`, `general.*`)を import し収集不能(§1.6 記載の「mongo 系2ファイル」の実体はレガシー死テスト)。→ Phase 3 仕分け対象(削除 or 再実装)。
+- E-8(依存ギャップ・オーナー承認): `web/google_oauth_helper.py:1` の `from google.oauth2 import id_token` / `from google.auth.transport import requests` が要求する **google-auth** と、その transport が実際に使う **requests** が L-0b ピン一覧から欠落。flask_helpers の smoke import を通す唯一の障壁だったため、オーナー承認のうえ実ライブラリを exact 導入: `google-auth==2.55.1`, `requests==2.34.2`(transitive: cryptography==49.0.0 / cffi / pycparser / pyasn1 / pyasn1_modules / certifi / urllib3 / charset-normalizer / idna)。requirements-dev.txt に固定。google 機能は特性テストで行使されないため挙動不変。
+- E-9(実行標準・D-21): pytest 起動を **console-script `./.venv/bin/pytest <明示テストファイル>`** に標準化(`python -m pytest` でも `pytest tests/` の暗黙 glob でもない)。理由: (a) repo root からの `-m` は N-1 の locale shadow を誘発、(b) `tests/` glob は N-3 の死テストを収集してエラーになる。計画の完了条件 `pytest tests/ -k smoke_import` に対する挙動不変の明示パス置換。L-0c 完了確認: `./.venv/bin/pytest tests/test_smoke_import.py -k smoke_import` → 2 passed。
