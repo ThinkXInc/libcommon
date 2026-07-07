@@ -115,3 +115,13 @@
 - 注入(conftest。src 変更ゼロ): (1) `sys.modules['config'] = config_test`(全必須キー+直接アクセスキーを網羅。metaclass catch-all は不使用 — optional な `getattr(config,X,default)` を壊さないため)、(2) redis→fakeredis、(3) `mongoengine.connect`→mongomock、(4) `boto3.client/resource`→MagicMock、(5) `vectordb_server.*`(path 外の別コンポーネント)を meta path finder で mock 解決。
 - N-13(新発見・import 時副作用): `mails/send_mail.py` が**モジュール import 時に SES 経由でテストメールを2通送信**(Mail Client Test 1/2。`libcommon/mail.py` の `boto3.client('ses')`)。本番 creds では**アプリ起動/import のたびに実メール送信**。テストでは boto3 mock で遮断。boto3 リトライで import が数分ハングする実害も観測。→ Phase 3(import 時副作用の除去)。
 - config_test が 70 の静的抽出を超えて必要とした直接アクセス/追加 check_config キー: SUPPORTED_LANGS / GENERAL_CREDIT_PER_RESPONSE / INTERVIEW_CREDIT_PER_RESPONSE / MONTHLY_FREE_CREDIT / PAYMENT_MAX_RETRIES / PAYMENT_RETRY_DELAY / SENDER / REPLY_TO / SES_AWS_REGION / MAIL_NOREPLY / MAIL_SYSTEM / GOOGLE_OAUTH_CLIENT_ID / BASIC_AUTH_USERNAME / BASIC_AUTH_PASSWORD(後3者は submodule libcommon 旧版由来)。
+
+---
+
+## Q-2 ルート総なめ + API 3型スナップショットの記録
+
+- ルート総なめ(`tests/golden/route_sweep.json`): 72 GET ルート、status 分布 **200×39 / 302×21 / 401×4 / 404×2 / 500×6**(2回実行で安定=決定的)。テンプレは相対パス `views/templates`(cwd 依存)のため conftest で `os.chdir(web-server)` して本番同等に解決(→ 39 ルートが描画 200)。このスイートが以後の全変更 + AWS 移行 STEP2 の受け入れ試験を兼ねる。
+- 残 6×500 ルート(現状凍結・Phase 3 仕分け): `/<lang>/getstarted`(TemplateNotFound `test/get_started.html`)、`/<lang>/interview/demo`、`/interviews/<id>/add/<client_id>`、`/v1/<lang>/interviews/<id>`、`/v1/<lang>/users/verify_link`、`/v1/users/verify_link`(欠落テンプレ + ダミー id/token のデータ経路エラー混在)。
+- API 3型形状(`tests/golden/api_shape_*.json`): 型3 バリデーション `{code, errors, message, reason}`/400、型2 単体エラー `{field_name, code, message, reason}`/415 は live エンドポイント `/v1/en/users/create` から。型1 成功 `{code, message, user}`/200 は認証 live が harness 不可のため同一 SuccessFormat クラスの http_response() を app 文脈で凍結。
+- N-14(新発見・genuine バグ): `accounts.py:323` `users_create` が `request.json["email"]` を**検証前に直接アクセス** → email 欠落(空 json 等)で KeyError → 500。required_fields_check より前に落ちるため、本来のバリデーション 400 応答に到達しない。→ Phase 3。
+- E-15(harness 制約・D-21 記録): `models/data/user.py:294` `create_new` の一部クエリ経路を **mongomock が "Special options not supported"(NotImplementedError)で拒否** → signup 成功・認証済み経路が harness 下で実行不能。Q-2 の成功型は契約形状源(format クラス)から凍結して回避。実 MongoDB(AWS 移行 STEP2)では実行可の見込み。
