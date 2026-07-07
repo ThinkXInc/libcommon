@@ -36,12 +36,15 @@ from libcommon.color import *
 logger = Logger('Locale')
 logger.setLevel(logger.INFO)
 
-from config import Config, check_config
-# Check if all keys and values are satisfied
-REQUIRED_KEYS = [
-    'DEFAULT_LANG',
-]
-check_config(Config, REQUIRED_KEYS)
+# L-1: config 依存を除去。DEFAULT_LANG は既定 'en'(getlang のフォールバックのみで使用)。
+# アプリ起動時に configure_locale() で上書き可能。check_config はアプリ側の責務に移譲。
+_DEFAULT_LANG = 'en'
+
+
+def configure_locale(default_lang: str) -> None:
+    global _DEFAULT_LANG
+    _DEFAULT_LANG = default_lang
+
 
 COMMON_LOCALES_ROOT = (Path(__file__).parent / 'locales').absolute()
 COMMON_LOCALES_FILE_PATHS = [
@@ -235,5 +238,5 @@ class Locale:
         """
         lang = request.args.get('lang') \
             if Language.is_valid_value(request.args.get('lang')) \
-            else Config.DEFAULT_LANG
+            else _DEFAULT_LANG
         return lang

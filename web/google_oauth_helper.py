@@ -8,14 +8,14 @@ logger = Logger('google oauth helper')
 logger.setLevel(logger.DEBUG)
 from libcommon.color import *
 
-# Config
-from config import Config, check_config
-REQUIRED_KEYS_IN_CONFIG = [
-    'GOOGLE_OAUTH_CLIENT_ID',
-]
-check_config(Config, REQUIRED_KEYS_IN_CONFIG)
+# 依存注入(L-1): アプリ起動時に configure_google_oauth() を呼ぶ。
+# 従来の Config.GOOGLE_OAUTH_CLIENT_ID 依存と check_config をここに吸収。
+_client_id = None
 
-CLIENT_ID = Config.GOOGLE_OAUTH_CLIENT_ID
+
+def configure_google_oauth(client_id: str) -> None:
+    global _client_id
+    _client_id = client_id
 
 # Errors
 class InvalidTokenError(Exception):
@@ -37,7 +37,7 @@ class EmailNotVerifiedError(Exception):
 def verify_token(token):
     try:
         # Verify the integrity of token using google's public key, and decode its payload
-        id_info = id_token.verify_oauth2_token(token, requests.Request(), CLIENT_ID)
+        id_info = id_token.verify_oauth2_token(token, requests.Request(), _client_id)
 
         # Check issuer
         if id_info['iss'] not in ['https://accounts.google.com', 'accounts.google.com']:
@@ -46,8 +46,8 @@ def verify_token(token):
             raise WrongIssuerError(error_msg)
 
         # Check client ID
-        if id_info['aud'] != CLIENT_ID:
-            error_msg = f"Client ID mismatch: expected {CLIENT_ID}, got {id_info['aud']}"
+        if id_info['aud'] != _client_id:
+            error_msg = f"Client ID mismatch: expected {_client_id}, got {id_info['aud']}"
             logger.error(red(error_msg))
             raise ClientIDMismatchError(error_msg)
 

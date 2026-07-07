@@ -11,5 +11,6 @@ def test_smoke_import_session():
 
 def test_smoke_import_flask_helpers():
     import libcommon.web.flask_helpers as flask_helpers_mod
-    assert hasattr(flask_helpers_mod, 'session_helper')
+    assert hasattr(flask_helpers_mod, 'make_session_helper')
+    assert hasattr(flask_helpers_mod, 'configure_flask_helpers')
     assert hasattr(flask_helpers_mod, 'language_wrapper')

@@ -33,8 +33,6 @@ from flask.sessions import SessionInterface, SessionMixin
 from redis import StrictRedis, Redis
 from werkzeug.datastructures import CallbackDict
 
-from config import Config, check_config
-
 # logger
 from libcommon.logger import Logger
 from libcommon.color import *
@@ -42,16 +40,6 @@ from libcommon.color import *
 logger = Logger()
 logger.setLevel(logger.DEBUG)
 
-
-REDIS_SESSION_REQUIRED_KEYS = [
-    'REDIS_SESSION_HOST',
-    'REDIS_SESSION_PORT',
-    'REDIS_SESSION_DB_NUMBER',
-    'REDIS_SESSION_EXPIRATION_TIME_SEC'
-]
-
-# Check if all keys and values are satisfied
-check_config(Config, REDIS_SESSION_REQUIRED_KEYS)
 
 class RedisSession(CallbackDict, SessionMixin):
     def __init__(self, initial=None, sid=None, new=False):
@@ -64,18 +52,15 @@ class RedisSession(CallbackDict, SessionMixin):
         self.modified = True
 
 class RedisSessionInterface(SessionInterface):
-    def __init__(self, prefix='session:'):
+    def __init__(self, host: str, port: int, db: int, expiration_time_sec: int, prefix='session:'):
         self.prefix = prefix
+        self.expiration_time_sec = expiration_time_sec
 
         self.serializer = msgpack
         self.session_class = RedisSession
 
         logger.info(magenta('Initializing Redis for session...'))
-        self.pool = redis.ConnectionPool(
-            host=Config.REDIS_SESSION_HOST,
-            port=Config.REDIS_SESSION_PORT,
-            db=Config.REDIS_SESSION_DB_NUMBER
-        )
+        self.pool = redis.ConnectionPool(host=host, port=port, db=db)
         self.__redis = Redis(connection_pool=self.pool)
 
         # Check if Redis is running by executing a simple command
@@ -100,7 +85,7 @@ class RedisSessionInterface(SessionInterface):
         """
         if session.permanent:
             return app.permanent_session_lifetime
-        return timedelta(days=Config.REDIS_SESSION_EXPIRATION_TIME_SEC)
+        return timedelta(days=self.expiration_time_sec)
 
     def open_session(self, app, request):
         """Overrides SessionInterface.open_session()
@@ -174,13 +159,18 @@ class Session:
     SESSIONS_PREFIX = 'sessions:'
     SESSION_KEY = 'user_id'
 
-    # Define __redis as a class attribute
-    redis_pool = redis.ConnectionPool(
-        host=Config.REDIS_SESSION_HOST,
-        port=Config.REDIS_SESSION_PORT,
-        db=Config.REDIS_SESSION_DB_NUMBER
-    )
-    __redis = StrictRedis(connection_pool=redis_pool)
+    _redis = None
+
+    @classmethod
+    def configure(cls, host: str, port: int, db: int) -> None:
+        pool = redis.ConnectionPool(host=host, port=port, db=db)
+        cls._redis = StrictRedis(connection_pool=pool)
+
+    @classmethod
+    def _r(cls):
+        if cls._redis is None:
+            raise RuntimeError('Session.configure() must be called at app startup')
+        return cls._redis
 
     @classmethod
     def user_id(cls) -> int:
@@ -221,8 +211,8 @@ class Session:
             session[cls.SESSION_KEY] = user_id
             session.sid = str(uuid4())
             sessions_key = f'{cls.SESSIONS_PREFIX}{user_id}'
-            cls.__redis.sadd(sessions_key, session.sid)
-            cls.__redis.set(f"user_id:{session.sid}", user_id)  # Store reverse mapping
+            cls._r().sadd(sessions_key, session.sid)
+            cls._r().set(f"user_id:{session.sid}", user_id)  # Store reverse mapping
             logger.info(cyan(f"Session started for user {user_id} with session ID {session.sid}."))
         except redis.RedisError as e:
             logger.error(red(f"Error starting session for user {user_id}: {e}"))
@@ -234,9 +224,9 @@ class Session:
         if user_id:
             try:
                 sessions_key = f'{Session.SESSIONS_PREFIX}{user_id}'
-                Session.__redis.delete(sessions_key)
-                Session.__redis.delete(Session.SESSION_PREFIX + session.sid)
-                Session.__redis.delete(f"user_id:{session.sid}")
+                Session._r().delete(sessions_key)
+                Session._r().delete(Session.SESSION_PREFIX + session.sid)
+                Session._r().delete(f"user_id:{session.sid}")
                 session.clear()
                 logger.info(light_green(f"Session cleared for user {user_id}."))
             except redis.RedisError as e:
@@ -254,14 +244,14 @@ class Session:
 
         sessions_key = f'{cls.SESSIONS_PREFIX}{user_id}'
         try:
-            user_sids = cls.__redis.smembers(sessions_key)
+            user_sids = cls._r().smembers(sessions_key)
             count = 0
             for user_sid in user_sids:
                 user_sid = user_sid.decode()
-                if cls.__redis.exists(cls.SESSION_PREFIX + user_sid):
+                if cls._r().exists(cls.SESSION_PREFIX + user_sid):
                     count += 1
                 else:
-                    cls.__redis.srem(sessions_key, user_sid)
+                    cls._r().srem(sessions_key, user_sid)
             logger.info(bold(f"Active session count for user {user_id}: {count}"))
             return count
         except redis.RedisError as e:
@@ -280,7 +270,7 @@ class Session:
         """
         user_session_key = f'user_id:{session_id}'
         try:
-            user_id = cls.__redis.get(user_session_key)
+            user_id = cls._r().get(user_session_key)
             if user_id is not None:
                 user_id = user_id.decode('utf-8')  # Properly decode from bytes to string
                 logger.info(f"User ID '{user_id}' retrieved from session ID '{session_id}'.")

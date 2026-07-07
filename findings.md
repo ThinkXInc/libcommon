@@ -78,3 +78,14 @@
 - N-10(新発見・F821): `mongobase.py:243` `cursor` 未定義、`mongobase.py:779` `pd`(pandas)未定義(§5 対象外)。
 - N-11(新発見・F821): `web/api_response_v1.py:184` `key` 未定義(L-4「判断」領域・消費0)。
 - N-12(新発見・F722): `mongobase.py:243` forward annotation の構文エラー(§5 対象外)。
+
+---
+
+## L-1 依存注入化(核心・[改修])の記録
+
+- 決定(オーナー承認 2026-07-07): 完了条件#1(app_stub 無しの素の import)は L-1 署名対象2ファイル(session.py/flask_helpers.py)だけでは達成不能 — import 連鎖の `locale.py`([凍結])・`web/locale_helper.py`・`web/google_oauth_helper.py` も `from config import Config` に依存するため。オーナー裁定により **L-1 スコープを連鎖3モジュールへ拡張**(挙動保存・ゴールデン不変を絶対条件)して de-config した。
+- 署名フォーム拡張(挙動保存): `RedisSessionInterface.__init__` は計画署名の host/port/db に加え **expiration_time_sec も引数化**(get_redis_expiration_time が旧 `Config.REDIS_SESSION_EXPIRATION_TIME_SEC` を参照していたため。config 除去の必要な帰結)。**N-6(days/秒の単位バグ)は「修正」せず**値の出所のみ付け替え(`timedelta(days=self.expiration_time_sec)` を維持。修正は Phase 3)。
+- F-5(change 3): §1.5 の定義どおり `google_oauth_token_check` 内に限定して `g.errors.append` → `g.setdefault('errors', []).append` に統一。他デコレータの g.errors 挙動は不変(T-L2 の順序依存ゴールデンは不変)。N-5 の未定義名(ErrorCode/locale)は L-1 対象外・不変(Phase 3)。
+- 連鎖 de-config(挙動保存): `locale.py` は `_DEFAULT_LANG='en'`+`configure_locale()`(getlang のフォールバックのみ・T-L4 非行使)。`locale_helper.py` は既定 `lang='en'`(呼出側は常に lang 明示)。`google_oauth_helper.py` は `_client_id`+`configure_google_oauth()`(特性テスト非行使)。
+- E-12(完了条件#2 の残差・D-21 記録): `grep 'from config import|from models' libcommon/web/` は **live chain で 0件**だが、死コード `web/errors_v1.py:2` と `web/[DEPRECATE]api_errors.py:59` の2件が残る。両者は消費0の死コードで **L-3(api_errors 削除)/ L-4(errors_v1 attic)で除去**され、その時点で literally 0件になる。#2 の意図(消費される連鎖の脱 config)は達成済み。
+- 完了条件結果: #1 素の import exit 0 ✅ / #3 特性テスト新 API 経由・ゴールデン不変 68 passed ✅ / #4 app_stub 撤去後 green ✅ / #5 ruff・pyright exit 0 ✅ / #2 上記 E-12。

@@ -4,9 +4,6 @@ from flask import request, g, abort, Response
 import re
 from functools import wraps, partial
 
-from config import Config, check_config
-from models.data.user import User, UnauthorizedAccessError, UserNotFoundError  # NEEDSFIX: don't depend on data.user
-
 from libcommon.language import Language
 from libcommon.locale import Locale
 from libcommon.validator import Validator, ValidationType
@@ -31,19 +28,23 @@ from libcommon.color import *
 logger = Logger()
 logger.setLevel(logger.DEBUG)
 
-REQUIRED_KEYS = [
-    'DEFAULT_LANG',
-    'BASIC_AUTH_USERNAME',
-    'BASIC_AUTH_PASSWORD',
-]
-check_config(Config, REQUIRED_KEYS)
+# 依存注入(L-1): アプリ起動時に configure_flask_helpers() を呼ぶ。
+# 従来のモジュール定数(Config 依存)と F-4 の AVAILABLE_LANGS ハードコードをここに吸収。
+# check_config 呼び出しは削除(検査責務はアプリ側 main.py にある)。
+DEFAULT_LANG = None
+AVAILABLE_LANGS = None
+LANG_NAME_MAP = None
+BASIC_AUTH_USERNAME = None
+BASIC_AUTH_PASSWORD = None
 
-BASIC_AUTH_USERNAME = Config.BASIC_AUTH_USERNAME
-BASIC_AUTH_PASSWORD = Config.BASIC_AUTH_PASSWORD
 
-DEFAULT_LANG = Config.DEFAULT_LANG
-AVAILABLE_LANGS = ['en', 'ja', 'zh', 'ru', 'es', 'ar', 'fr']  # TODO: use Config.AVAILABLE_LANGS
-LANG_NAME_MAP = Language.lang_label_map(only=AVAILABLE_LANGS)
+def configure_flask_helpers(default_lang, available_langs, basic_auth_username, basic_auth_password):
+    global DEFAULT_LANG, AVAILABLE_LANGS, LANG_NAME_MAP, BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD
+    DEFAULT_LANG = default_lang
+    AVAILABLE_LANGS = available_langs
+    LANG_NAME_MAP = Language.lang_label_map(only=available_langs)
+    BASIC_AUTH_USERNAME = basic_auth_username
+    BASIC_AUTH_PASSWORD = basic_auth_password
 
 def language_wrapper(func):
     @wraps(func)
@@ -260,36 +261,29 @@ def handle_error(error, error_class, lang):
         return error_instance.http_response()
     return inner_handle_error(error)
 
-# FIXME: to avoid dependence to User, move this to session.py or a new file
-def session_helper(f):
+def make_session_helper(user_loader, on_no_session, on_user_not_found):
+    """依存注入版 session_helper(L-1)。
+
+    アプリが自分の User 取得関数と例外を注入することで、libcommon が
+    models.data.user に import 時依存するレイヤ逆転を解消する。
+
+    args:
+        - user_loader: (user_id: str) -> user | None。アプリが自分の User を注入する。
+        - on_no_session: セッションが無い場合に送出する例外を返す callable。
+        - on_user_not_found: user_loader が None を返した場合に送出する例外を返す callable。
     """
-
-    Additionally, add error handlers in the Flask app instance.
-
-        @app.errorhandler(UnauthorizedAccessError)
-        def handle_unauthorized_access(error):
-            return UnauthorizedAPIErrorFormat(lang=Config.DEFAULT_LANG, message=str(error)).http_response()
-
-        @app.errorhandler(UserNotFoundError)
-        def handle_user_not_found(error):
-            return UnauthorizedAPIErrorFormat(lang=Config.DEFAULT_LANG, message=str(error)).http_response()
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        user_id = Session.user_id()
-        if not user_id:
-            logger.error(red('No user ID found in session.'))
-            raise UnauthorizedAccessError("User must be logged in to access this resource.")
-
-        user = User.objects(id=user_id).first()
-        if not user:
-            logger.error(red(f'User not found with ID: {user_id}'))
-            raise UserNotFoundError("User not found.")
-
-        logger.info(green(f'User found: {user.email}'))
-        return f(user=user, *args, **kwargs)
-
-    return decorated_function
+    def session_helper(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            user_id = Session.user_id()
+            if not user_id:
+                raise on_no_session()
+            user = user_loader(user_id)
+            if user is None:
+                raise on_user_not_found()
+            return f(user=user, *args, **kwargs)
+        return decorated
+    return session_helper
 
 def google_oauth_token_check(field_name):
     def decorator(f):
@@ -319,7 +313,7 @@ def google_oauth_token_check(field_name):
                 else:
                     error_format = GoogleOauthTokenErrorFormat(error_message='An internal error occurred', code=ErrorCode.INTERNAL_SERVER_ERROR)
                 logger.error(red(f"OAuth token validation failed: {str(e)}"))
-                g.errors.append(error_format)
+                g.setdefault('errors', []).append(error_format)  # F-5: g.errors 二流儀を setdefault に統一
 
             return f(*args, **kwargs)
         return decorated_function

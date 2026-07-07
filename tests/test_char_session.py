@@ -13,13 +13,17 @@ from golden_utils import assert_golden, make_app
 
 from libcommon.web.session import Session, RedisSessionInterface
 
+# L-1: 依存注入。旧クラス属性 pool(Config 由来)と同値を注入し、外部挙動を保存する。
+# conftest が redis を fakeredis に差し替え済みなので、これは fake サーバに繋がる。
+Session.configure('localhost', 6379, 0)
+
 app = make_app()
 USER_ID = 'user123'
 
 
 def _redis():
-    # cls.__redis は name-mangle され _Session__redis(conftest で fakeredis に差し替え済み)
-    return Session._Session__redis
+    # L-1: Session._r() が注入済み fakeredis クライアントを返す。
+    return Session._r()
 
 
 def _scan_keys():
@@ -73,7 +77,7 @@ def test_session_get_user_id_from_unknown_sid():
 
 def test_session_cookie_issued_via_interface():
     a = make_app()
-    a.session_interface = RedisSessionInterface()
+    a.session_interface = RedisSessionInterface(host='localhost', port=6379, db=0, expiration_time_sec=3600)
 
     @a.route('/login')
     def login():

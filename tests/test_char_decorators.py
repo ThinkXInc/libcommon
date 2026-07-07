@@ -14,6 +14,16 @@ from golden_utils import assert_golden, make_app, make_locale
 from libcommon.web.flask_helpers import (
     language_wrapper, content_type_check_json, required_fields_check,
     regex_check, format_check, length_check, required_query_params, validate_request,
+    configure_flask_helpers,
+)
+
+# L-1: 依存注入。旧モジュール定数(Config 由来 + F-4 の AVAILABLE_LANGS ハードコード)と
+# 同値を注入し、外部挙動(=ゴールデン)を保存する。
+configure_flask_helpers(
+    default_lang='en',
+    available_langs=['en', 'ja', 'zh', 'ru', 'es', 'ar', 'fr'],
+    basic_auth_username='testuser',
+    basic_auth_password='testpass',
 )
 
 LOCALE = make_locale()
