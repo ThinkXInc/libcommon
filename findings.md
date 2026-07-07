@@ -95,3 +95,13 @@
 ## L-3 死荷重削除の記録
 
 - E-13(完了条件の submodule 残差・D-21 記録): `web/[DEPRECATE]api_errors.py`(705行)を `git rm`。消費者ゼロを実測確認済み('api_errors' の全ヒットはファイル自身のコメント `# api/responses/api_errors.py` のみで、import する消費者は皆無)。libcommon 内 grep は 0件。ただし完了条件 grep `grep -rn 'api_errors' libcommon quantz-web thinkx` は **quantz-web の submodule スナップショット3件**(`web-server/libcommon`・`vectordb_server/libcommon`・`web-server/llm/libcommon` 内の同ファイル)を拾う。これらは編集禁止の vendored スナップショットで **Q-6 の vendoring カットオーバーで更新**される。live 消費者0(#L-3 の意図)は達成。
+
+---
+
+## Track Q 着手前の環境調査(Q-1 の前提・D-21 記録)
+
+- E-14(Q-1 環境・macOS 固有制約): quantz-web `web-server/requirements.txt` は **132 パッケージで、Linux/CUDA 専用の ML スタックを含む**: `vllm==0.2.0` / `triton==2.0.0` / `xformers==0.0.22` / `nvidia-cuda-*-cu11`(11個)/ `ray==2.7.0` / `torch==2.0.1` / `transformers` 等。これらは **darwin(macOS)に wheel が無く導入不能**。したがって full requirements のインストールは本ホストで不可。
+  - **feasibility の要**: main.py + 全 blueprint(accounts/studio/create/materials/payments/interviews/basic_configs/sample_sites/develop/deploy)+ init_flask_app + models/data/user を実測 grep した結果、**web アプリの import 連鎖は torch/vllm/transformers/xformers/ray/qdrant を一切 import しない(ML フリー)**。ML スタックは `llm/`(別 submodule)・celery worker 側の専有。
+  - **したがって Q-1 は curated サブセット(flask/mongoengine/pymongo/msgpack/pydantic/python-dotenv/redis/requests/stripe/boto3/Flask-HTTPAuth/google-auth/dnspython/jsonschema/PyYAML/pika/pycryptodome 等の web 用のみ)で feasible**。ML/CUDA/Linux-only パッケージは test venv から除外し、その旨を記録する(Phase 1 の eslint・E-4 pytz と同じ「導入不能は最近似 or 除外+記録」方針)。full install を試みない。
+  - main.py の import 時副作用: `config`(Config/check_config)/ `init_mongodb`(モジュールレベル `mongoengine.connect`)/ 各 blueprint。Q-1 の conftest は main import 前に `mongoengine.connect` を mongomock で monkeypatch + fakeredis + `config_test.py`(全必須キー)を要する(計画 v1.3 の注入機構どおり)。
+  - **順序(§8)**: Q-1 スキップ不可(L-4 以降は Q-3 に依存)。Track Q の環境立ち上げが次の焦点。
