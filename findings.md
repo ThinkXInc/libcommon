@@ -161,3 +161,10 @@
 - F-2 の型ヒントの嘘を修正(挙動不変・型と docstring のみ): `user_id() -> Optional[str]`、`start(user_id: str)`、`count(user_id: str)`、`get_user_id_from_session_id() -> Optional[str]`(user_id は MongoDB ObjectId の str)。`from typing import Optional` 追加。
 - Session クラス docstring に **Redis キー体系(逆引き)** を明文化: `session:{sid}`=本体 / `sessions:{user_id}`=sid 集合(逆引き・多端末カウント用)/ `user_id:{sid}`=逆引きマップ。auth プロトコル §2 手順6 の「ローカルセッション」がこのクラスである旨をコメント参照。
 - 完了条件: T-L3 ゴールデン不変(76 passed・git 上で無変更確認)✅ / ruff・pyright exit 0 ✅。注: session.py は web/ にあり pyright 除外(L-0e の「まず web/ 以外」)のため、型修正は correctness 目的で gate 非強制。web/ の型検査有効化は次期(L-0e の phasing)。
+
+---
+
+## L-7 / L-8 の記録
+
+- L-7: `libcommon/CLAUDE.md`(契約の機械可読化)を計画全文どおり作成。**権限ブロック→解決の記録**: `.claude/settings.json` の `Write(CLAUDE.md)`/`Edit(CLAUDE.md)` が gitignore 形式で任意階層の CLAUDE.md に一致し libcommon/CLAUDE.md も阻んだ。オーナーが root 限定(`/CLAUDE.md`)へ緩和して解禁(settings は実行者不可侵のため人間が変更。D-21 停止→承認の流れ)。
+- L-8: `scripts/bake.sh <tag> <dest>`(clone→tag checkout→.git 除去→VERSION 生成→配置)を作成。**tree sha256 は `__pycache__`/`*.pyc` を除外**(v1.8)。ハッシュツールは macOS 互換で `shasum -a 256`(計画例示の `sha256sum` は macOS に無いため。挙動同値=SHA-256、findings 記録)。mechanics 検証: bake 先で `import libcommon.web.flask_helpers, libcommon.web.session` 成功(原則7=単独 import 可能を bake 先でも証明)。v2.0.0 タグを全ゲート green 時点で付与。
