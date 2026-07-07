@@ -171,6 +171,9 @@ class Session:
     SESSION_PREFIX = 'session:'      # session:{sid} -> セッション本体
     SESSIONS_PREFIX = 'sessions:'    # sessions:{user_id} -> sid 集合(逆引き・多端末カウント用)
     SESSION_KEY = 'user_id'
+    # N-7: start() が書く session:{sid} プレースホルダ本体の TTL(秒)。save_session が
+    # 応答時に本体で上書きするまでの橋渡し。上書きが起きない経路でも漏れないよう TTL を付ける。
+    PLACEHOLDER_TTL_SEC = 3600
 
     _redis = None
 
@@ -226,6 +229,9 @@ class Session:
             sessions_key = f'{cls.SESSIONS_PREFIX}{user_id}'
             cls._r().sadd(sessions_key, session.sid)
             cls._r().set(f"user_id:{session.sid}", user_id)  # Store reverse mapping
+            # N-7: count() が start 直後の live セッションを反映できるよう、session:{sid} 本体を
+            # TTL 付きプレースホルダ(空値)で先行作成する。save_session が応答時に本体で上書きする。
+            cls._r().setex(f'{cls.SESSION_PREFIX}{session.sid}', cls.PLACEHOLDER_TTL_SEC, '')
             logger.info(cyan(f"Session started for user {user_id} with session ID {session.sid}."))
         except redis.RedisError as e:
             logger.error(red(f"Error starting session for user {user_id}: {e}"))

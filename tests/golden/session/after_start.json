@@ -1,9 +1,12 @@
 {
-  "count": 0,
+  "count": 1,
   "redis_keys_after_count": [
+    "session:<SID>",
+    "sessions:user123",
     "user_id:<SID>"
   ],
   "redis_keys_after_start": [
+    "session:<SID>",
     "sessions:user123",
     "user_id:<SID>"
   ],
