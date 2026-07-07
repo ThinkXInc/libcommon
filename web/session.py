@@ -86,7 +86,7 @@ class RedisSessionInterface(SessionInterface):
         """
         if session.permanent:
             return app.permanent_session_lifetime
-        return timedelta(days=self.expiration_time_sec)
+        return timedelta(seconds=self.expiration_time_sec)
 
     def open_session(self, app, request):
         """Overrides SessionInterface.open_session()

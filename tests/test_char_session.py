@@ -91,3 +91,23 @@ def test_session_cookie_issued_via_interface():
         'set_cookie_present': set_cookie is not None,
         'cookie_name_present': 'session=' in (set_cookie or ''),
     })
+
+
+def test_session_key_ttl_uses_seconds():
+    # N-6 (P3-L1): expiration_time_sec は「秒」。save_session が設定する session:{sid} の
+    # TTL が設定値(3600秒)相当であることを直接アサートする。days 誤用なら ~3600日
+    # (= 311,040,000 秒)になり、この範囲外で fail する(Red)。
+    a = make_app()
+    a.session_interface = RedisSessionInterface(host='localhost', port=6379, db=0, expiration_time_sec=3600)
+
+    @a.route('/login')
+    def login():
+        Session.start(USER_ID)
+        return 'ok'
+
+    a.test_client().get('/login')
+
+    session_keys = [k for k in _scan_keys() if k.startswith(Session.SESSION_PREFIX)]
+    assert len(session_keys) == 1, f'expected exactly one session:* key, got {session_keys}'
+    ttl = _redis().ttl(session_keys[0])
+    assert 3590 <= ttl <= 3600, f'expected ~3600s TTL, got {ttl}'
