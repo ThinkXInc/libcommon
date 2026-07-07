@@ -31,32 +31,22 @@ sys.path.append('../')
 #from libcommon.response.api_response import ErrorResponse, ErrorCode
 
 
-#class InvalidISOFormatError(Exception):
-#    """Exception raised for invalid ISO 8061 formatted strings.
-#
-#    Attributes:
-#        iso_formatted_string -- the invalid ISO 8061 string that caused the exception
-#    """
-#    
-#    def __init__(self, iso_formatted_string):
-#        self.iso_formatted_string = iso_formatted_string
-#
-#    def __error_obj__(self):
-#        """Constructs an error object for JSON response."""
-#        error_response = ErrorResponse({
-#            'code': ErrorCode.INVALID_PARAMETER.value,
-#            'reason': ErrorCode.INVALID_PARAMETER.name,
-#            'message': f'{self.iso_formatted_string} is invalid as iso formatted timestamp.'
-#        })
-#        return jsonify({'data': None, 'error': error_response.json()}), 400
-#
-#    def __str__(self):
-#        return repr(f'{self.iso_formatted_string} is invalid as iso formatted timestamp.')
+class InvalidISOFormatError(ValueError):
+    """Raised when an ISO-formatted timestamp string cannot be parsed (N-8).
+
+    ValueError のサブクラス。iso8061_to_datetime の except 経路が送出する。既存の
+    `except ValueError` 呼び出し側でも捕捉できるよう ValueError から派生する。
+    """
 
 
 # typo alias, kept for compatibility; naive-now default preserved(現挙動保存。新規は datetime_to_iso8601 を使う)
 def datetime_to_iso8061(date: datetime = None, tz=pytz.utc) -> str:
-    """Converts a datetime object to its ISO 8061 string representation.
+    """Deprecated: use datetime_to_iso8601 (aware-UTC default, L-5 正名版).
+
+    N-4: 既定 tz=pytz.utc(tzinfo オブジェクト)での引数付き呼び出しは、文字列前提の
+    pytz.timezone に不適合で AttributeError を送出したまま(互換のため凍結・挙動不変)。
+
+    Converts a datetime object to its ISO 8061 string representation.
 
     Parameters:
     - date: datetime object to be converted. Uses current date and time if not provided.
@@ -77,7 +67,9 @@ def datetime_to_iso8061(date: datetime = None, tz=pytz.utc) -> str:
 
 
 def iso8061_to_datetime(iso_formatted_string: str) -> datetime:
-    """Converts an ISO 8061 string to its datetime object representation.
+    """Deprecated: use iso8601_to_datetime (L-5 正名版). 旧名は ISO 8601 の typo。
+
+    Converts an ISO 8061 string to its datetime object representation.
 
     Parameters:
     - iso_formatted_string: The ISO 8061 string to be converted.

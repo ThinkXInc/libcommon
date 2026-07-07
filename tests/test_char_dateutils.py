@@ -28,6 +28,19 @@ def test_iso8061_default_tz_raises_attributeerror():
     assert_golden('dateutils/iso8061_default_tz', {'raises': 'AttributeError'})
 
 
+def test_iso8061_invalid_input_raises_invalid_iso_format_error():
+    # N-8 (P3-L4): 不正入力は InvalidISOFormatError を送出する
+    # (旧挙動: 未定義 InvalidISOFormatError 参照による NameError)。
+    with pytest.raises(D.InvalidISOFormatError):
+        D.iso8061_to_datetime('not-a-date')
+    with pytest.raises(ValueError):  # ValueError としても捕捉可能(サブクラス)
+        D.iso8061_to_datetime('not-a-date')
+    assert_golden('dateutils/iso8061_invalid_input', {
+        'raises': 'InvalidISOFormatError',
+        'is_value_error': True,
+    })
+
+
 def test_iso8061_utc_string():
     assert_golden('dateutils/iso8061_utc', D.datetime_to_iso8061(FIXED, tz='UTC'))
 
