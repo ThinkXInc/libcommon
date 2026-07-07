@@ -8,7 +8,7 @@ target-version = "py310"
 
 # .venv / 対象外サブシステム(§5: vector_database はスモークのみ)/ 死んだレガシーテスト(N-3)/
 # チュートリアル notebook(ドキュメント・非対象)を除外。
-extend-exclude = [".venv", "vector_database", "tests/mongobase_test.py", "tests/modelbase_test.py", "tutorials", "attic"]
+extend-exclude = [".venv", "vector_database", "tutorials", "attic"]
 
 [lint]
 select = ["F", "E9"]
