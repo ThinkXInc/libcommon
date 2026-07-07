@@ -26,6 +26,7 @@
 #
 import msgpack
 from datetime import timedelta
+from typing import Optional
 from uuid import uuid4
 import redis
 from flask import session
@@ -155,8 +156,20 @@ class RedisSessionInterface(SessionInterface):
                             domain=domain)
 
 class Session:
-    SESSION_PREFIX = 'session:'
-    SESSIONS_PREFIX = 'sessions:'
+    """ログイン済みユーザーのローカルセッション(Redis 実体)。
+
+    ThinkX Auth Protocol §2 手順6 の「ローカルセッションを開始」がこのクラスを指す。
+
+    Redis のキー体系(逆引き):
+      - ``session:{sid}``        → セッション本体(RedisSessionInterface が保存)
+      - ``sessions:{user_id}``   → その user_id が持つ sid の集合(**逆引き**。多端末の
+                                    同時セッション数カウント = ``count()`` に使う)
+      - ``user_id:{sid}``        → sid から user_id への逆引きマップ
+    user_id は MongoDB ObjectId の **str**(コーディングガイドが ``str(user.id)`` を指示。F-2)。
+    """
+
+    SESSION_PREFIX = 'session:'      # session:{sid} -> セッション本体
+    SESSIONS_PREFIX = 'sessions:'    # sessions:{user_id} -> sid 集合(逆引き・多端末カウント用)
     SESSION_KEY = 'user_id'
 
     _redis = None
@@ -173,7 +186,7 @@ class Session:
         return cls._redis
 
     @classmethod
-    def user_id(cls) -> int:
+    def user_id(cls) -> Optional[str]:
         """Get user_id from session.
         """
         user_id = session.get(cls.SESSION_KEY)
@@ -191,7 +204,7 @@ class Session:
         return exists
 
     @classmethod
-    def start(cls, user_id: int) -> None:
+    def start(cls, user_id: str) -> None:
         """Save user session.
 
         Allow a single user to have multiple simultaneous sessions.
@@ -233,7 +246,7 @@ class Session:
                 logger.error(red(f"Error clearing session for user {user_id}: {e}"))
 
     @classmethod
-    def count(cls, user_id: int) -> int:
+    def count(cls, user_id: str) -> int:
         """get access count
         args:
             user_id : int  # User._id
@@ -259,7 +272,7 @@ class Session:
             return 0
 
     @classmethod
-    def get_user_id_from_session_id(cls, session_id: str) -> str:
+    def get_user_id_from_session_id(cls, session_id: str) -> Optional[str]:
         """Retrieve user ID from a given session ID.
 
         Args:

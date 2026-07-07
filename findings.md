@@ -153,3 +153,11 @@
 - モジュール冒頭に UTC ドクトリンを明文化(保存・演算は aware UTC、表示時のみ変換、新規で naive を作らない)。
 - 残置(現挙動保存ゆえ・Phase 3): 旧 `datetime_to_iso8061` の既定 tz=pytz.utc は AttributeError(N-4)、旧 `iso8061_to_datetime` の異常系は未定義 `InvalidISOFormatError`(N-8)。いずれも旧名の現挙動として凍結済み。
 - 完了条件: 正名/epoch 往復・新既定 UTC 直接アサート・旧名現挙動 pytest green(76 passed)/ 旧ゴールデン不変 ✅ / grep 0件 ✅ / pyright exit 0 ✅。
+
+---
+
+## L-6 Session の型と契約の精密化の記録
+
+- F-2 の型ヒントの嘘を修正(挙動不変・型と docstring のみ): `user_id() -> Optional[str]`、`start(user_id: str)`、`count(user_id: str)`、`get_user_id_from_session_id() -> Optional[str]`(user_id は MongoDB ObjectId の str)。`from typing import Optional` 追加。
+- Session クラス docstring に **Redis キー体系(逆引き)** を明文化: `session:{sid}`=本体 / `sessions:{user_id}`=sid 集合(逆引き・多端末カウント用)/ `user_id:{sid}`=逆引きマップ。auth プロトコル §2 手順6 の「ローカルセッション」がこのクラスである旨をコメント参照。
+- 完了条件: T-L3 ゴールデン不変(76 passed・git 上で無変更確認)✅ / ruff・pyright exit 0 ✅。注: session.py は web/ にあり pyright 除外(L-0e の「まず web/ 以外」)のため、型修正は correctness 目的で gate 非強制。web/ の型検査有効化は次期(L-0e の phasing)。
