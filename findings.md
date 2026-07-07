@@ -105,3 +105,13 @@
   - **したがって Q-1 は curated サブセット(flask/mongoengine/pymongo/msgpack/pydantic/python-dotenv/redis/requests/stripe/boto3/Flask-HTTPAuth/google-auth/dnspython/jsonschema/PyYAML/pika/pycryptodome 等の web 用のみ)で feasible**。ML/CUDA/Linux-only パッケージは test venv から除外し、その旨を記録する(Phase 1 の eslint・E-4 pytz と同じ「導入不能は最近似 or 除外+記録」方針)。full install を試みない。
   - main.py の import 時副作用: `config`(Config/check_config)/ `init_mongodb`(モジュールレベル `mongoengine.connect`)/ 各 blueprint。Q-1 の conftest は main import 前に `mongoengine.connect` を mongomock で monkeypatch + fakeredis + `config_test.py`(全必須キー)を要する(計画 v1.3 の注入機構どおり)。
   - **順序(§8)**: Q-1 スキップ不可(L-4 以降は Q-3 に依存)。Track Q の環境立ち上げが次の焦点。
+
+---
+
+## Q-1 テストプロセス起動可能化の記録
+
+- 結果: `pytest tests/ -k test_app_imports` → **1 passed**(`from main import app` 成功、~1.3s、安定)。
+- curated venv: scratchpad 外部に構築(repo 非コミット)。再現用に **`web-server/tests/requirements-test.txt`**(ML/CUDA 除外の web サブセット、exact ピン)をコミット。**除外した Linux/CUDA-only(E-14): vllm / triton / xformers / nvidia-cuda-*-cu11(11個)/ ray / torch / transformers / xformers / accelerate / datasets / optimum / vllm / fastapi 系(vectordb API)/ uvicorn**。full requirements への切替はしない(D-16: 本物のインフラは AWS 移行 STEP2)。
+- 注入(conftest。src 変更ゼロ): (1) `sys.modules['config'] = config_test`(全必須キー+直接アクセスキーを網羅。metaclass catch-all は不使用 — optional な `getattr(config,X,default)` を壊さないため)、(2) redis→fakeredis、(3) `mongoengine.connect`→mongomock、(4) `boto3.client/resource`→MagicMock、(5) `vectordb_server.*`(path 外の別コンポーネント)を meta path finder で mock 解決。
+- N-13(新発見・import 時副作用): `mails/send_mail.py` が**モジュール import 時に SES 経由でテストメールを2通送信**(Mail Client Test 1/2。`libcommon/mail.py` の `boto3.client('ses')`)。本番 creds では**アプリ起動/import のたびに実メール送信**。テストでは boto3 mock で遮断。boto3 リトライで import が数分ハングする実害も観測。→ Phase 3(import 時副作用の除去)。
+- config_test が 70 の静的抽出を超えて必要とした直接アクセス/追加 check_config キー: SUPPORTED_LANGS / GENERAL_CREDIT_PER_RESPONSE / INTERVIEW_CREDIT_PER_RESPONSE / MONTHLY_FREE_CREDIT / PAYMENT_MAX_RETRIES / PAYMENT_RETRY_DELAY / SENDER / REPLY_TO / SES_AWS_REGION / MAIL_NOREPLY / MAIL_SYSTEM / GOOGLE_OAUTH_CLIENT_ID / BASIC_AUTH_USERNAME / BASIC_AUTH_PASSWORD(後3者は submodule libcommon 旧版由来)。
