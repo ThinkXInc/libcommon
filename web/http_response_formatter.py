@@ -51,9 +51,9 @@ class SuccessFormat(BaseModel):
 
 # Error
 class APIErrorFormat(BaseModel):
-    field_name: str = Field(default=None, example='user_id')  # Optional if you don't always need a key
+    field_name: str = Field(default=None, json_schema_extra={'example': 'user_id'})  # Optional if you don't always need a key
     code: ErrorCode = ErrorCode.BAD_REQUEST
-    message: str = Field(..., example='Error message here.')
+    message: str = Field(..., json_schema_extra={'example': 'Error message here.'})
     extra_data: dict = Field(default_factory=dict)
 
     def response_json(self) -> tuple:
