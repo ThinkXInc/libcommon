@@ -1,0 +1,5 @@
+{
+  "field_name": "email",
+  "message": "Use the standard email format. e.g. name@domain.com.",
+  "value": "x"
+}

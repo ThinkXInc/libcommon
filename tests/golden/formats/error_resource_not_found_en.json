@@ -1,0 +1,9 @@
+{
+  "body": {
+    "code": 404,
+    "field_name": "",
+    "message": "The requested resource could not be found.",
+    "reason": "NOT_FOUND"
+  },
+  "status": 404
+}

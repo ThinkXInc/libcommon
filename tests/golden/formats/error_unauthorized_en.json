@@ -1,0 +1,10 @@
+{
+  "body": {
+    "code": 401,
+    "field_name": "",
+    "message": "You must authenticate to get the requested response.",
+    "reason": "UNAUTHORIZED",
+    "redirect_url": null
+  },
+  "status": 401
+}

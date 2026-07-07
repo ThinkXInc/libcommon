@@ -1,0 +1,9 @@
+{
+  "body": {
+    "code": 401,
+    "field_name": "token",
+    "message": "Missing token",
+    "reason": "UNAUTHORIZED"
+  },
+  "status": 401
+}

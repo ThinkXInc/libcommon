@@ -1,0 +1,22 @@
+{
+  "black": "\u001b[30mX\u001b[0m",
+  "blue": "\u001b[34mX\u001b[0m",
+  "bold": "\u001b[1mX\u001b[0m",
+  "cyan": "\u001b[36mX\u001b[0m",
+  "green": "\u001b[32mX\u001b[0m",
+  "grey": "\u001b[90mX\u001b[0m",
+  "light_blue": "\u001b[94mX\u001b[0m",
+  "light_cyan": "\u001b[96mX\u001b[0m",
+  "light_green": "\u001b[92mX\u001b[0m",
+  "light_magenta": "\u001b[95mX\u001b[0m",
+  "light_red": "\u001b[91mX\u001b[0m",
+  "light_white": "\u001b[97mX\u001b[0m",
+  "light_yellow": "\u001b[93mX\u001b[0m",
+  "magenta": "\u001b[35mX\u001b[0m",
+  "orange": "\u001b[93mX\u001b[0m",
+  "purple": "\u001b[35mX\u001b[0m",
+  "red": "\u001b[31mX\u001b[0m",
+  "underline": "\u001b[4mX\u001b[0m",
+  "white": "\u001b[37mX\u001b[0m",
+  "yellow": "\u001b[33mX\u001b[0m"
+}

@@ -1,0 +1,10 @@
+{
+  "body": {
+    "code": 401,
+    "field_name": "",
+    "message": "要求された応答を得るためには、認証が必要です。",
+    "reason": "UNAUTHORIZED",
+    "redirect_url": null
+  },
+  "status": 401
+}

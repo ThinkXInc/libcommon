@@ -1,0 +1,9 @@
+{
+  "body": {
+    "code": 403,
+    "field_name": "",
+    "message": "You don't have permission to access this resource.",
+    "reason": "FORBIDDEN"
+  },
+  "status": 403
+}

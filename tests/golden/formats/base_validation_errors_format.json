@@ -1,0 +1,20 @@
+{
+  "body": {
+    "code": 400,
+    "errors": [
+      {
+        "field_name": "email",
+        "message": "required",
+        "value": "x"
+      },
+      {
+        "field_name": "pw",
+        "message": "too short",
+        "value": null
+      }
+    ],
+    "message": "validation",
+    "reason": "BAD_REQUEST"
+  },
+  "status": 400
+}

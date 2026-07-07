@@ -20,3 +20,6 @@ ipython_config.py
 venv/
 .venv/
 
+# pytest
+.pytest_cache/
+

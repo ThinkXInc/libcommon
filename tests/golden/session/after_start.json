@@ -1,0 +1,12 @@
+{
+  "count": 0,
+  "redis_keys_after_count": [
+    "user_id:<SID>"
+  ],
+  "redis_keys_after_start": [
+    "sessions:user123",
+    "user_id:<SID>"
+  ],
+  "reverse_lookup": "user123",
+  "user_id": "user123"
+}

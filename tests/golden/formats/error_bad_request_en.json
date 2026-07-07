@@ -1,0 +1,9 @@
+{
+  "body": {
+    "code": 400,
+    "field_name": "",
+    "message": "The request could not be understood by the server due to malformed syntax.",
+    "reason": "BAD_REQUEST"
+  },
+  "status": 400
+}

@@ -1,0 +1,9 @@
+{
+  "body": {
+    "code": 415,
+    "field_name": "",
+    "message": "Invalid content type.",
+    "reason": "UNSUPPORTED_MEDIA_TYPE"
+  },
+  "status": 415
+}

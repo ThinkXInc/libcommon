@@ -1,0 +1,9 @@
+{
+  "body": {
+    "code": 409,
+    "field_name": "email",
+    "message": "The user with the entered email address already exists.",
+    "reason": "CONFLICT"
+  },
+  "status": 409
+}

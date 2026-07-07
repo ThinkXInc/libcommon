@@ -49,3 +49,13 @@
 - N-3(新発見・死荷重): `tests/mongobase_test.py:10–13` / `tests/modelbase_test.py:10–16` が不在モジュール(`nose`, `tools.*`, `general.*`)を import し収集不能(§1.6 記載の「mongo 系2ファイル」の実体はレガシー死テスト)。→ Phase 3 仕分け対象(削除 or 再実装)。
 - E-8(依存ギャップ・オーナー承認): `web/google_oauth_helper.py:1` の `from google.oauth2 import id_token` / `from google.auth.transport import requests` が要求する **google-auth** と、その transport が実際に使う **requests** が L-0b ピン一覧から欠落。flask_helpers の smoke import を通す唯一の障壁だったため、オーナー承認のうえ実ライブラリを exact 導入: `google-auth==2.55.1`, `requests==2.34.2`(transitive: cryptography==49.0.0 / cffi / pycparser / pyasn1 / pyasn1_modules / certifi / urllib3 / charset-normalizer / idna)。requirements-dev.txt に固定。google 機能は特性テストで行使されないため挙動不変。
 - E-9(実行標準・D-21): pytest 起動を **console-script `./.venv/bin/pytest <明示テストファイル>`** に標準化(`python -m pytest` でも `pytest tests/` の暗黙 glob でもない)。理由: (a) repo root からの `-m` は N-1 の locale shadow を誘発、(b) `tests/` glob は N-3 の死テストを収集してエラーになる。計画の完了条件 `pytest tests/ -k smoke_import` に対する挙動不変の明示パス置換。L-0c 完了確認: `./.venv/bin/pytest tests/test_smoke_import.py -k smoke_import` → 2 passed。
+
+---
+
+## L-0d 実行時の新発見(特性テストで実測。すべて Phase 3 仕分け対象)
+
+- N-4(新発見・バグ): `dateutils.py:50, 67` `datetime_to_iso8061(date, tz=pytz.utc)` の `date.astimezone(timezone(tz))` は `pytz.timezone` が文字列を要求するため、既定 `tz=pytz.utc`(tzinfo オブジェクト)では `AttributeError: 'UTC' object has no attribute 'upper'`。**引数無し呼び出しは現状壊れている**(文字列 tz='UTC'/'Asia/Tokyo' は正常)。特性テスト `dateutils/iso8061_default_tz` で AttributeError を凍結。
+- N-5(新発見・F821/実行時 NameError。L-0e の ruff で正式記録予定): `web/flask_helpers.py` に未定義名参照が複数。`handle_query_param_errors`(L166)→ `required_query_params` は必須クエリ欠落時に NameError。`MinLengthNotReachedErrorFormat`(L207・未 import)→ `length_check` は min 未満で NameError。`ErrorCode`(L301 ほか)・`locale`(L304)→ `google_oauth_token_check` は NameError。特性テストで NameError を凍結(`decorators/required_query_missing_nameerror`)。
+- N-6(新発見・単位バグ): `web/session.py:103` `get_redis_expiration_time` が `timedelta(days=Config.REDIS_SESSION_EXPIRATION_TIME_SEC)` を返す。設定値の単位は秒(*_SEC)だが `days=` に渡している(3600 秒設定なら 3600 **日**の有効期限)。
+- N-7(新発見・整合): `web/session.py:223–225` `Session.start` は `sessions:{user_id}`(sadd)と `user_id:{sid}`(set)のみ書き、`session:{sid}` を書かない。`session.py:257–264` `count` は `session:{sid}` 不在の sid を `srem` して除去する。→ save_session を経ない `Session.start` 直後の `count()` は常に 0(特性テスト `session/after_start` で実測凍結: start 直後キー=`sessions:user123`+`user_id:<SID>`、count 後=`user_id:<SID>` のみ、count=0)。
+- N-8(新発見・実行時 NameError): `dateutils.py:92` `iso8061_to_datetime` の except 経路が commented-out の `InvalidISOFormatError` を参照 → 不正入力時に NameError(正常な往復は `dateutils/roundtrip` で凍結済み)。

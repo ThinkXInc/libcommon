@@ -1,0 +1,9 @@
+{
+  "body": {
+    "code": 400,
+    "field_name": "user_id",
+    "message": "bad",
+    "reason": "BAD_REQUEST"
+  },
+  "status": 400
+}

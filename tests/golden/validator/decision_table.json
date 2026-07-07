@@ -1,0 +1,16 @@
+{
+  "email_invalid": false,
+  "email_valid": true,
+  "max_length_ok": true,
+  "password_no_upper": false,
+  "password_too_short": false,
+  "password_valid": true,
+  "postal_invalid": false,
+  "postal_valid": true,
+  "required_empty": false,
+  "required_none": false,
+  "required_value": true,
+  "tel_invalid": false,
+  "tel_valid": true,
+  "unknown_type": false
+}
