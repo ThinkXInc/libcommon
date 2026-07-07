@@ -177,3 +177,12 @@
 - 配線(挙動保存): `init_flask_app.py` に起動 wiring 追加 — `RedisSessionInterface(host,port,db,exp)`(新シグネチャ)/ `Session.configure(host,port,db)` / `configure_flask_helpers(DEFAULT_LANG, SUPPORTED_LANGS, BASIC_AUTH_*)`。注入値は旧モジュール定数と同値(DEFAULT_LANG='en'・7言語・BASIC_AUTH)→ 挙動保存。
 - `session_helper` 移設: 中央 `app_session.py` に `make_session_helper(user_loader=lambda uid: User.objects(id=uid).first(), on_no_session=UnauthorizedAccessError, on_user_not_found=UserNotFoundError)` を1回定義。10ファイル(main/accounts/studio/create/deploy/materials/payments/interviews/basic_configs/develop)は import を flask_helpers→app_session へ機械移設(`@session_helper` 使用は不変)。
 - 完了条件: Q-2 スイート green(**route 表・API 3型ゴールデンとも不変**=配線が挙動を変えていない証明。git 上で golden 無変更確認)✅ / libcommon 原本の live chain `from config import` 0件のまま ✅。
+- user_loader 検証(ユーザー要請): pre-L-1 旧 session_helper(ba9efa8, `web/flask_helpers.py:278`)は `User.objects(id=user_id).first()` + no-session→`UnauthorizedAccessError` / user不在→`UserNotFoundError`。Q-4 `app_session.py` は `User.objects(id=uid).first()` + 同2例外で**完全一致**(推測なし・既存ロジック保存)。順序は Q-1→Q-2→Q-3 完了後に Q-4=(b)。
+
+---
+
+## Q-5 / Q-6 の記録
+
+- Q-5a: `accounts.py:336` の debug email ハードコードを `Config.DEBUG_USER_EMAILS` へ移動(config.py / config_test に同値追加)。Q-5b: `route_helpers.route_with_lang(blueprint, path, **options)` を新設し accounts の signup/signin 2箇所を集約(route 表不変)。Q-5c: `signup.html` を `PAGE_DATA` 単一注入化(handler で page_data dict、window.* ブリッジ維持で他 JS 不破壊、signup.js の3参照を PAGE_DATA へ追随)、GET /signup 200 維持 + PAGE_DATA アサート追加。各ゴールデン不変。
+- Q-6 vendoring カットオーバー(オーナー承認の破壊的操作): `web-server/libcommon` と `vectordb_server/libcommon` を **submodule deinit → git rm → bake.sh v2.0.0 で実ファイル焼き込み → .gitmodules から両エントリ除去**。両 VERSION tree_sha256 = **3359309a…**(bake元 v2.0.0 と一致 ✅)。完了条件: submodule update 無しの vendored tree で **Q-2 6 passed**・ゴールデン不変 ✅ / VERSION hash 一致 ✅。残 submodule は web-server/llm・simplicity(本計画対象外)。
+- **未完(人間要): settings deny 追加** — `.claude/settings.json` に `Edit(web-server/libcommon/**)` / `Edit(vectordb_server/libcommon/**)` の deny(無言フォーク防止)。私は settings 編集不可(L-7 と同様)。bake 後に追加する順序(deny を先に入れると bake の書込みがブロックされるため)。
