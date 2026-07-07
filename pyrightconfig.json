@@ -8,6 +8,7 @@
     "web",
     "tests",
     "tutorials",
+    "attic",
     "**/__pycache__",
     "dateutils.py",
     "discord.py",

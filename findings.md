@@ -134,3 +134,11 @@
 - 対応(計画 L-4 注記どおり: errors_v1 に import を直さず material_v1 側をフォーマット族へ寄せる): `web/http_errors` の `BadRequestAPIErrorFormat`(ProcessingError 相当)/ `ResourceNotFoundAPIErrorFormat`(ResourceNotFoundError 相当)へ写像。メッセージは `locale.get(<key>, lang, locale_args=...)`。dead ファイルゆえ app 挙動・Q-2 ゴールデンに無影響(Q-2 5 passed・不変を確認)。
 - E-16(完了条件の submodule 残差・D-21 記録): `grep -rn 'libcommon.response' quantz-web` は **live app code で 0件**(material_v1.py 修正で達成)。残 14 件は全て編集禁止の vendored/submodule 領域: `web-server/libcommon/`・`vectordb_server/libcommon/`・`web-server/llm/libcommon/`(libcommon 旧スナップショットの `celery.py`/`errors_v1.py`/`dateutils.py`)+ `web-server/llm/queue_server/task_handler.py`(llm submodule 自体)。いずれも **Q-6 の vendoring / 各 submodule 更新で解消**。#F-1 の意図(live の壊れた import 除去)は達成。
 - 派生記録(Phase 3 候補): libcommon 原本にも `celery.py` が `libcommon.response.successes/errors`(非実在)を import する疑い(submodule コピーに同型)。celery は §5 対象外(スモークのみ)だが、libcommon 側の壊れた import として Phase 3 で確認・仕分け。
+
+---
+
+## L-4 例外族の attic 退避の記録
+
+- 既定判断(オーナー未反転)どおり `web/api_response_v1.py`(368行)/ `web/errors_v1.py`(131行)を **`attic/` へ `git mv`**。消費者ゼロを実測確認(非 self 参照 0件)。errors_v1 は `libcommon.response.api_response`(非実在)+ `from config import Config` の二重壊れだが dead ゆえ退避で足りる。
+- `attic/README.md` に退避理由(例外 raise 型の二重定義・v2 統合判断待ち)を記録。**attic は検証の床から除外**: ruff `extend-exclude` と pyright `exclude` に `attic` を追加し、web/ 側の stale per-file-ignore(api_response_v1/errors_v1)を削除。
+- 完了条件: attic 以外で `grep 'api_response_v1|errors_v1'` 0件 ✅ / pytest 73 passed ✅ / ruff・pyright exit 0 ✅。E-12(L-1 で残った web/errors_v1 の `from config import`)は本項目の退避で live web/ から消滅。

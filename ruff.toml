@@ -8,7 +8,7 @@ target-version = "py310"
 
 # .venv / 対象外サブシステム(§5: vector_database はスモークのみ)/ 死んだレガシーテスト(N-3)/
 # チュートリアル notebook(ドキュメント・非対象)を除外。
-extend-exclude = [".venv", "vector_database", "tests/mongobase_test.py", "tests/modelbase_test.py", "tutorials"]
+extend-exclude = [".venv", "vector_database", "tests/mongobase_test.py", "tests/modelbase_test.py", "tutorials", "attic"]
 
 [lint]
 select = ["F", "E9"]
@@ -26,8 +26,6 @@ ignore = ["F403", "F405"]
 "enumlocale.py" = ["F841"]
 "mongobase.py" = ["F401", "F722", "F821", "F841"]
 "mongomodel.py" = ["F401"]
-"web/api_response_v1.py" = ["F401", "F821"]
-"web/errors_v1.py" = ["F401"]
 "web/flask_helpers.py" = ["F401"]
 "web/google_oauth_helper.py" = ["F541"]
 "web/http_response_formatter.py" = ["F401"]
