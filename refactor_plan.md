@@ -1,8 +1,22 @@
-# libcommon + quantz-web リファクタリング計画書 v1.1
+# libcommon + quantz-web リファクタリング計画書 v1.8
 
 作成日: 2026-07-06(v1.1 同日改訂)/ 対象: libcommon(`master` HEAD)+ quantz-web(`master` HEAD、参照実装トラック)
 実行環境の前提: Python 3.10以上、git、pip、Node.js(Q-5のJS確認時のみ)。
 関連文書: PROTOCOL.md(ThinkX Auth Protocol v1・上位契約)/ simplicityリファクタリング計画書 v1.2(別トラック・混線禁止)
+
+v1.8 の変更点: L-8 の bake.sh 仕様に「tree hash は __pycache__/*.pyc を除外して算出」を追加(Phase 4a の auth 足場構築で、テスト実行が生成する .pyc により VERSION 照合が偽陽性 mismatch になる欠陥を実測検出。Phase 2.5/Q-6 での再発を防ぐ)。作業構成に変更なし。
+
+v1.7 の変更点: L-0b の findings 転記範囲を「F-1〜F-7」から「§1.5 表の全行」に修正(v1.1 の F-8/F-9 追加に本行が追随していなかった内部齟齬。Phase 2 実行者が検出し superset 転記で正しく処理済み)。作業内容に変更なし。
+
+v1.6 の変更点: DECISIONS の番号再編(タグ規則が D-24 を取得し、auth 前倒しは D-25、GPT 層別は D-26 へ)に参照を追随させたのみ。作業内容に変更なし。
+
+v1.5 の変更点: auth 前倒しトラック(D-25)の成立により、[改修]面の消費者に auth が加わる旨を §1.2 に追記。ただし auth は現行 libcommon のスナップショット(pre-v2.0.0・編集禁止)を消費し、Phase 4b で v2.0.0 へ機械追随するため、本計画の「戦略的な窓」の評価と作業項目・完了条件に変更はない。
+
+v1.4 の変更点(セキュリティレビュー反映): §6 に Security exception を追加(セキュリティ疑いは即停止・報告。秘密値を記録に書かない)、実行者指示文に同旨を追記。作業項目・完了条件に変更なし。
+
+v1.3 の変更点(計画作成者によるセルフ監査。simplicity R-10 の事実誤認を受け、全行番号引用18箇所をコメント境界検出込みで実コードと再突合): **誤読ゼロを確認**。精密化3件のみ — (1) F-5 の位置を L294以降 に修正(旧記載 L283 は session_helper 本体内を指していた)、(2) L-1 の session_helper 範囲を L264–292 に修正、(3) Q-1 の前提を精密化(Mongo 接続は init_mongodb.py のモジュールレベルで発生し main.py L65 の import が引き金。ただし try/except で失敗はログのみのため、真の import ブロッカーは config 検査。mongomock の注入機構は conftest での mongoengine.connect の monkeypatch)。作業項目の構成・完了条件に変更なし。
+
+v1.2 の変更点: findings.md の位置づけを明記(バグ修正計画(ROADMAP Phase 3)への入力)。作業項目・完了条件に変更なし。
 
 v1.1 の変更点: (1) L-0a の前提検証を計画作成時に実測完了(kazukiotsukacom の[改修]面消費ゼロを確認、truetech は thinkx 内と確認)— 実行者の作業から除外。(2) dateutils の実測検算により F-8(naive `datetime.now()` デフォルト=多地域分散目標に違反)・F-9(deprecated な `utcnow`/`utcfromtimestamp` の使用)を発見済み事実に追加し、L-5 を拡張。(3) config の pydantic-settings 化を「やらないこと」に明記(次期候補)。
 
@@ -45,6 +59,7 @@ v1.1 の変更点: (1) L-0a の前提検証を計画作成時に実測完了(kaz
 | **web/[DEPRECATE]api_errors.py(705行)** | **0** | **0** | 削除(L-4) |
 
 前提の検証(v1.1 で完了): kazukiotsukacom を実測した結果、[改修]面(flask_helpers / session / api_response_v1 / errors_v1 / api_errors)の消費は**ゼロ**(消費プロファイルは thinkx と同型: logger / color / validator / locale / language / フォーマット族 / mail)。truetech は独立リポジトリではなく thinkx 内(`web-server/` の truetechjapan 系アセット)であることも確認済み。**したがって[改修]面の消費者が quantz-web のみであることは、全消費者について実測で確定している。**
+(v1.5 追記: auth 前倒しトラック(docs/AUTH_TRACK.md / D-25)により、[改修]面の消費者に auth が加わる。ただし auth は pre-v2.0.0 スナップショットを消費する非本番のワークスペース内トラックで、Phase 4b の追随項目が予約済みのため、本計画の窓と等級判定は不変。)
 
 ### 1.3 レスポンス層の二系統並立(実測)
 
@@ -68,7 +83,7 @@ v1.1 の変更点: (1) L-0a の前提検証を計画作成時に実測完了(kaz
 | F-2 | `Session.user_id() -> int` / `start(cls, user_id: int)` の型ヒントが嘘(実体は MongoDB ObjectId の str。コーディングガイド自身が `str(user.id)` を指示) | session.py L186, L204 | L-7 で修正([改修]面) |
 | F-3 | `dateutils` の公開関数名が `iso8061`(正: ISO **8601**)。typo が公開 API に固定されている | dateutils.py L50, L71 | L-6 で正名追加+旧名エイリアス維持 |
 | F-4 | `flask_helpers.py` L45 `AVAILABLE_LANGS` がハードコード(`# TODO: use Config.AVAILABLE_LANGS` と作者マーク済み) | 同行 | L-1 の初期化 API に吸収 |
-| F-5 | `google_oauth_token_check` 内で `g.setdefault('errors',[])` と `g.errors.append` の二流儀が混在し、except 経路では `g.errors` 未初期化だと AttributeError になりうる | flask_helpers.py L283以降 | L-2 特性テストで現挙動を凍結、修正は L-1 改修に内包 |
+| F-5 | `google_oauth_token_check` 内で `g.setdefault('errors',[])` と `g.errors.append` の二流儀が混在し、except 経路では `g.errors` 未初期化だと AttributeError になりうる | flask_helpers.py L294以降 | L-2 特性テストで現挙動を凍結、修正は L-1 改修に内包 |
 | F-6 | `from libcommon.color import *` のスター import が quantz-web に21箇所+libcommon 内部にも存在 | grep 実測 | 記録のみ(findings)。一斉修正は範囲外 |
 | F-7 | thinkx が libcommon とは別に独自 `flask_helper.py`(69行)を保持(分岐した規約) | リポジトリ実測 | 記録のみ。統合判断は次期 |
 | F-8 | `datetime_to_iso8061` の引数デフォルトが naive な `datetime.now()`(サーバのローカル時刻・tzinfo なし)。地域の異なるサーバで実行すると出力が変わり、「多地域分散でもタイムゾーン整合」という設計目標にこの1関数だけ違反。docstring も自己矛盾(本文は Asia/Tokyo と言い、シグネチャは pytz.utc、例は +09:00) | dateutils.py L66, L51–63 | L-5 で正名関数側のみ修正(旧名は挙動保存) |
@@ -103,7 +118,7 @@ pip install pytest==8.3.4 fakeredis==2.26.2 flask==3.1.0 pydantic==2.10.4 \
 pip freeze > requirements-dev.txt
 ```
 (バージョンは計画作成時の指定。インストール不能な場合は最も近い版に置換し findings に記録。)
-- `findings.md` を新規作成し §1.5 の表 F-1〜F-7 を転記。
+- `findings.md` を新規作成し §1.5 の表の**全行(現行 F-1〜F-9)**を転記(v1.7 修正: v1.1 で F-8/F-9 を表に追加した際、本行の範囲表記が追随していなかった。常に §1.5 表が正)。
 - **完了条件:** venv 内で `pytest --version` / `ruff --version` / `pyright --version` が成功。
 - **コミット:** `chore: dev environment pin and findings ledger`
 
@@ -143,7 +158,7 @@ pip freeze > requirements-dev.txt
 
 ### L-1 [改修] 依存注入化: レイヤ逆転の解消(本計画の核心)
 
-- **対象:** `web/flask_helpers.py` L7–8, L34–46, L264–290(session_helper)/ `web/session.py` L36, L172–183
+- **対象:** `web/flask_helpers.py` L7–8, L34–46, L264–292(session_helper)/ `web/session.py` L36, L172–183
 - **問題:** §1.4 の通り。共有ライブラリがホストアプリの `config.py`・`models/data/user.py` に import 時依存し、単独 import・単独テスト・vendoring 後の独立検証が不可能。
 - **変更(この形に確定する。実行者の再設計は不要):**
   1. `web/session.py`: クラス属性での ConnectionPool 生成(L178–183)を廃止し、明示初期化に置換:
@@ -283,8 +298,12 @@ pip freeze > requirements-dev.txt
 ### L-8 タグ + bake スクリプト(vendoring 準備)
 
 - **対象:** 新規 `scripts/bake.sh`、タグ
-- **変更:** vendoring 議論で合意した手順をスクリプト化: `bake.sh <tag> <dest_dir>` = clone → タグ checkout → `.git` 除去 → `VERSION` ファイル生成(タグ + `git rev-parse` の tree hash)→ dest へ配置。全ゲート green を確認して `git tag v2.0.0`。
-- **完了条件:** `bash scripts/bake.sh v2.0.0 /tmp/bake_test` で `/tmp/bake_test/libcommon/VERSION` が生成され、`python -c "import ..."` の単独 import が bake 先でも成功(原則7の最終証明)。
+- **変更:** vendoring 議論で合意した手順をスクリプト化: `bake.sh <tag> <dest_dir>` = clone → タグ checkout → `.git` 除去 → `VERSION` ファイル生成(タグ + tree hash)→ dest へ配置。全ゲート green を確認して `git tag v2.0.0`。
+  **tree hash の算出は `__pycache__` / `*.pyc` を必ず除外すること**(これらは import・テスト実行で
+  生成される非追跡物であり、含めると照合が偽陽性 mismatch になる。Phase 4a で実測検出)。
+  推奨: `git archive` のツリー(追跡ファイルのみ)に対して算出するか、`find dest -type f
+  -not -path '*/__pycache__/*' -not -name '*.pyc' | sort | xargs sha256sum | sha256sum`。
+- **完了条件:** `bash scripts/bake.sh v2.0.0 /tmp/bake_test` で `/tmp/bake_test/libcommon/VERSION` が生成され、`python -c "import ..."` の単独 import が bake 先でも成功(原則7の最終証明)。照合は `.pyc`/`__pycache__` 除外後に一致すること。
 - **依存:** L-1〜L-7 全部
 - **コミット:** `build: bake script and v2.0.0 tag for vendoring cutover`
 
@@ -298,7 +317,7 @@ pip freeze > requirements-dev.txt
 
 - **対象:** quantz-web `web-server/`(新規 `tests/` と `config_test.py`)
 - **問題:** `main.py` が import 時に MongoDB 接続・config 検査を行い、テストから import できない。
-- **変更:** `tests/conftest.py` で mongomock(mongoengine の `connect(..., mongo_client_class=mongomock.MongoClient)`)と fakeredis を差し込み、`config_test.py`(必要キーを全て埋めたテスト用 Config)を環境変数 or sys.path 先頭差し込みで選択させ、`from main import app` が成功するフィクスチャを作る。**src の変更は config 選択の仕組みが無い場合の最小限(環境変数 `QUANTZ_CONFIG` 分岐の追加)のみ許す。**
+- **変更:** `tests/conftest.py` で mongomock と fakeredis を差し込む。注入機構の精密化(v1.3): Mongo 接続は `init_mongodb.py` の**モジュールレベル**で発生し(`main.py` L65 の import が引き金)、try/except で失敗はログのみ。したがって conftest は **main を import する前に** `mongoengine.connect` を `functools.partial(connect, mongo_client_class=mongomock.MongoClient)` 相当で monkeypatch する(init_mongodb は引数を渡さないため、パッチ側で注入する)。真の import ブロッカーは config 検査(欠落キーで例外)なので、`config_test.py`(必要キーを全て埋めたテスト用 Config)を環境変数 or sys.path 先頭差し込みで選択させ、`from main import app` が成功するフィクスチャを作る。**src の変更は config 選択の仕組みが無い場合の最小限(環境変数 `QUANTZ_CONFIG` 分岐の追加)のみ許す。**
 - **完了条件:** `pytest tests/ -k test_app_imports` green。
 - **依存:** L-0b(共通 venv 資材)
 - **コミット:** `test: quantz-web importable under test config (mongomock/fakeredis)`
@@ -361,7 +380,9 @@ pip freeze > requirements-dev.txt
 
 ## 6. 発見事項の報告ルール
 
-simplicity 計画 §5 と同一: 修正せず `findings.md` に「ファイル:行 / 事実 / 発見項目ID」で1行追記。解釈を書かない。
+simplicity 計画 §5 と同一: 修正せず `findings.md` に「ファイル:行 / 事実 / 発見項目ID」で1行追記。解釈を書かない。findings.md は本計画完遂後の**バグ修正計画**(ワークスペースの docs/ROADMAP.md Phase 3)の入力であり、修正はテストの床がある状態でそこで一括実行される。
+
+**Security exception(唯一の例外):** credential/token 漏えい、XSS、CSRF、open redirect、認可バイパス、任意ホストへの token 送信、secrets のリポジトリ混入、CI secrets 露出、の疑いは findings に流さず**即停止して人間へ報告**する。記録には「Security exception 該当」とだけ書き、exploit 手順・秘密値・実トークンを書かない。修正可否は人間が別途判断する。libcommon は特に `.env` 由来の値・セッション・認証情報を扱う契約層なので、この例外の適用可能性が simplicity より高いことに留意する。
 
 ## 7. トレース検証(作成者による事前検証の記録)
 
@@ -389,6 +410,7 @@ simplicity 計画 §5 と同一: 修正せず `findings.md` に「ファイル:�
 5. 変更等級を守る: [凍結] 面はゴールデン不変が絶対条件。[改修] 面も、完了条件に
    「ゴールデン不変」とある場合は外部挙動を変えてはならない。
 6. 計画外の変更はしない。発見は findings.md に記録するだけにする(§6 の形式)。
+   ただしセキュリティ疑い(§6 Security exception)は findings に流さず即停止して報告する。
 7. 全項目完了後、全ゲート(pytest / ruff / pyright、両リポジトリ)の exit code、
    v2.0.0 の tree hash、findings.md の全内容を報告する。
 ```
