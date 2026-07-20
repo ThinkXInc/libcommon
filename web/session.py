@@ -171,6 +171,7 @@ class Session:
     SESSION_PREFIX = 'session:'      # session:{sid} -> セッション本体
     SESSIONS_PREFIX = 'sessions:'    # sessions:{user_id} -> sid 集合(逆引き・多端末カウント用)
     SESSION_KEY = 'user_id'
+    BROWSER_CONTEXT_KEY = 'browser_context_id'
     # N-7: start() が書く session:{sid} プレースホルダ本体の TTL(秒)。save_session が
     # 応答時に本体で上書きするまでの橋渡し。上書きが起きない経路でも漏れないよう TTL を付ける。
     PLACEHOLDER_TTL_SEC = 3600
@@ -200,6 +201,20 @@ class Session:
         return user_id
 
     @classmethod
+    def id(cls) -> Optional[str]:
+        """Return the current browser session ID."""
+        return getattr(session, 'sid', None)
+
+    @classmethod
+    def browser_context_id(cls) -> str:
+        """Return the stable browser context stored inside the Session."""
+        browser_context_id = session.get(cls.BROWSER_CONTEXT_KEY)
+        if browser_context_id is None:
+            browser_context_id = str(uuid4())
+            session[cls.BROWSER_CONTEXT_KEY] = browser_context_id
+        return browser_context_id
+
+    @classmethod
     def exists_session(cls):
         """Check if a user session exists."""
         exists = cls.SESSION_KEY in session
@@ -207,7 +222,7 @@ class Session:
         return exists
 
     @classmethod
-    def start(cls, user_id: str) -> None:
+    def start(cls, user_id: str, browser_context_id: Optional[str] = None) -> None:
         """Save user session.
 
         Allow a single user to have multiple simultaneous sessions.
@@ -223,8 +238,10 @@ class Session:
         """
         try:
             # redisにsessionがない場合なりすまし防止の為にcookieから取得したsessionを使用せずに再生成する
-            cls.clear()  # Clear any existing session data first
+            cls.clear_current()
             session[cls.SESSION_KEY] = user_id
+            if browser_context_id is not None:
+                session[cls.BROWSER_CONTEXT_KEY] = browser_context_id
             session.sid = str(uuid4())
             sessions_key = f'{cls.SESSIONS_PREFIX}{user_id}'
             cls._r().sadd(sessions_key, session.sid)
@@ -236,20 +253,46 @@ class Session:
         except redis.RedisError as e:
             logger.error(red(f"Error starting session for user {user_id}: {e}"))
 
-    @staticmethod
-    def clear() -> None:
-        """Clear the current session data from Redis."""
-        user_id = Session.user_id()
-        if user_id:
-            try:
-                sessions_key = f'{Session.SESSIONS_PREFIX}{user_id}'
-                Session._r().delete(sessions_key)
-                Session._r().delete(Session.SESSION_PREFIX + session.sid)
-                Session._r().delete(f"user_id:{session.sid}")
+    @classmethod
+    def clear_current(cls) -> None:
+        """Clear only the Session used by the current browser."""
+        session_id = cls.id()
+        user_id = cls.user_id()
+
+        try:
+            if user_id and session_id:
+                cls._r().srem(f'{cls.SESSIONS_PREFIX}{user_id}', session_id)
+            if session_id:
+                cls._r().delete(f'{cls.SESSION_PREFIX}{session_id}')
+                cls._r().delete(f'user_id:{session_id}')
+            session.clear()
+            logger.info(light_green(f"Current Session cleared for user {user_id}."))
+        except redis.RedisError as e:
+            logger.error(red(f"Error clearing current Session for user {user_id}: {e}"))
+
+    @classmethod
+    def revoke_all(cls, user_id: str) -> None:
+        """Revoke every Session belonging to a user."""
+        sessions_key = f'{cls.SESSIONS_PREFIX}{user_id}'
+
+        try:
+            session_ids = cls._r().smembers(sessions_key)
+            for session_id in session_ids:
+                if isinstance(session_id, bytes):
+                    session_id = session_id.decode('utf-8')
+                cls._r().delete(f'{cls.SESSION_PREFIX}{session_id}')
+                cls._r().delete(f'user_id:{session_id}')
+            cls._r().delete(sessions_key)
+            if cls.user_id() == user_id:
                 session.clear()
-                logger.info(light_green(f"Session cleared for user {user_id}."))
-            except redis.RedisError as e:
-                logger.error(red(f"Error clearing session for user {user_id}: {e}"))
+            logger.info(light_green(f"All Sessions revoked for user {user_id}."))
+        except redis.RedisError as e:
+            logger.error(red(f"Error revoking Sessions for user {user_id}: {e}"))
+
+    @classmethod
+    def clear(cls) -> None:
+        """Backward-compatible alias for clearing the current Session."""
+        cls.clear_current()
 
     @classmethod
     def count(cls, user_id: str) -> int:

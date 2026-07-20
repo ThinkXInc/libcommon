@@ -69,6 +69,62 @@ def test_session_clear_state():
     })
 
 
+def test_negative_session_same_browser_starts_two_parallel_authentications():
+    """05: 同一ブラウザで 2 つの認証を並行開始できる。"""
+    with app.test_request_context():
+        first = Session.browser_context_id()
+        second = Session.browser_context_id()
+
+    assert first == second
+
+
+def test_negative_session_rotation_preserves_browser_context_id():
+    """05: Session ローテーション後も browser_context_id を引き継ぐ。"""
+    with app.test_request_context():
+        browser_context_id = Session.browser_context_id()
+        old_session_id = Session.id()
+
+        Session.start(USER_ID, browser_context_id=browser_context_id)
+
+        assert Session.id() != old_session_id
+        assert Session.browser_context_id() == browser_context_id
+        assert not _redis().exists(f'{Session.SESSION_PREFIX}{old_session_id}')
+
+
+def test_negative_session_clear_current_revokes_only_current_browser():
+    """05/D-17: clear_current は当該 Session だけを失効する。"""
+    with app.test_request_context():
+        Session.start(USER_ID)
+        first_session_id = Session.id()
+
+    with app.test_request_context():
+        Session.start(USER_ID)
+        second_session_id = Session.id()
+        Session.clear_current()
+
+    assert _redis().exists(f'{Session.SESSION_PREFIX}{first_session_id}')
+    assert not _redis().exists(f'{Session.SESSION_PREFIX}{second_session_id}')
+    assert _redis().sismember(f'{Session.SESSIONS_PREFIX}{USER_ID}', first_session_id)
+    assert not _redis().sismember(f'{Session.SESSIONS_PREFIX}{USER_ID}', second_session_id)
+
+
+def test_negative_session_revoke_all_revokes_every_browser():
+    """05/D-17: revoke_all はユーザーの全端末 Session を失効する。"""
+    session_ids = []
+    for _ in range(2):
+        with app.test_request_context():
+            Session.start(USER_ID)
+            session_ids.append(Session.id())
+
+    with app.test_request_context():
+        Session.revoke_all(USER_ID)
+
+    for session_id in session_ids:
+        assert not _redis().exists(f'{Session.SESSION_PREFIX}{session_id}')
+        assert not _redis().exists(f'user_id:{session_id}')
+    assert not _redis().exists(f'{Session.SESSIONS_PREFIX}{USER_ID}')
+
+
 def test_session_get_user_id_from_unknown_sid():
     with app.test_request_context():
         result = Session.get_user_id_from_session_id('no-such-sid')
