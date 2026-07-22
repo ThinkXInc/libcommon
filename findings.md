@@ -196,6 +196,23 @@
 - P3-L7(celery.py・計画の live 分岐で停止=人間報告): 実在確認の結果、`libcommon.response` パッケージは**非実在**(celery.py L5 `from libcommon.response.successes import OK, ACCEPTED` / L6 `from libcommon.response.errors import ProcessingError`。attic には別名 `api_response_v1.py` / `errors_v1.py` のみ)。`import libcommon.celery` は `ModuleNotFoundError: No module named 'libcommon.response'` で失敗。**シンボルは live**: OK(L160)/ ACCEPTED(L136)/ ProcessingError(L128, L142)が `fetch_worker_results` 内で使用。さらに quantz `web-server/llm/queue_server/task_handler.py:126` が `fetch_worker_results` を参照(celery/ML ワーカー subsystem。Q-2 harness では mock・本ホスト導入不能)。計画 P3-L7 の分岐「使用が live なら停止して人間報告(celery は §5 対象外・live 修復は設計判断)」に**該当 → import 行削除は不可・コミットなしで停止**。gates への影響なし(E-9 明示テスト集合は celery を import しない / ruff は per-file-ignore `celery.py=["F401","F841"]` / pyright は `reportMissingImports:false` かつ celery.py の欠落 import はエラーにならない)。celery.py は v2.0.0 時点から同状態(本計画による regression ではない)。**人間判断待ち**: (a) P3-L7 を skip し P3-L8 以降を継続 / (b) celery の扱いを別途決定。
 - P3-L7: live 分岐により次期送り。libcommon.celery は現状 import 不能=実運用で import に成功している消費者が存在せず、v2.1.0 での現状維持は退行ではない。修復は celery の実用途が確定した時点の設計判断(次期サイクル入力)。
 - P3-R1(停止・要人間判断): quantz へ v2.1.0 を再 bake すると **route_sweep golden が正確に2ルートで mismatch**: `/v1/<lang>/users/verify_link` と `/v1/users/verify_link` がともに **500 → 400**(他70ルートは完全一致)。原因: 両者は `@required_query_params(['user_id','code'])`(accounts.py:717–721)を使う GET ルートで、route_sweep はクエリ無しで叩く。旧 v2.0.0 では N-5 の未定義 `handle_query_param_errors` 参照で NameError → Flask が 500 化。v2.1.0(N-5/P3-L3 修正)で `handle_query_param_errors` が ValidationErrors 族の **400** を返す。**これは N-5 の正当かつ意図した波及で regression ではない**。ただし: (i) route_sweep golden は Track R の名指し更新対象ではない、(ii) §1.3 の「6×500 ルート」と交差する。§1.3 は6×500を「TemplateNotFound 2 + データ経路4」と特徴づけていたが、**実際は2件(verify_link×2)が required_query_params の NameError-500 だった**(§1.3 の特徴づけ誤り)。残る4×500(getstarted / interview/demo / interviews/.../add / interviews/<id>)は不変で §1.3 次期のまま。**運転規則により停止**(名指し外ゴールデン差分 + §1.3 交差)。rebake は worktree 保持(未コミット)。人間判断: route_sweep golden の verify_link×2 を 500→400 に意図更新して P3-R1 を受理してよいか。
+
+## Auth Session security hotfix v2.2.1
+
+- v2.2.0 の `RedisSessionInterface(prefix='auth_session:')` は Session 本体を
+  `auth_session:{sid}` へ保存する一方、`Session.start/clear_current/revoke_all` は固定
+  `session:{sid}` を操作していた。実 Cookie を保持する2クライアントでは、全端末失効後も別端末の
+  `auth_session:{sid}` が残り、次要求で認証済み Session が復元された。
+- `Session.configure(..., prefix='session:')` を追加し、管理 API と Interface に同一 prefix を注入する。
+  Interface 初期化時の不一致は `ValueError` で起動を止め、無言の再発を許さない。
+- `RedisSessionInterface.save_session()` は Flask の cookie getter から name/path/domain/Secure/
+  HttpOnly/SameSite を取得して Set-Cookie と削除 Cookie の両方へ反映する。`CallbackDict` の変更通知も
+  接続し、`session.clear()` が削除 Cookie を発行するようにした。
+- `Session.start/clear_current/revoke_all` は Redis mutation 失敗をログ後に再送出し、失効・logout・
+  signin の失敗を成功応答として扱わない。
+- 既存 auth-spec traceability の全端末失効試験を custom prefix + 実 Cookie + 2 Flask client の
+  round trip へ置換した。修正前は prefix 引数未対応と RedisError 握り潰しで2件 Red、修正後は
+  canonical pytest 88 passed、ruff green、pyright 0 errors（既存 warning 5件）。
 # Auth L-2 Session extension
 
 - `web/session.py` の旧 `Session.clear()` は、現在の `session:{sid}` と `user_id:{sid}` だけを削除する一方、

@@ -44,16 +44,21 @@ logger.setLevel(logger.DEBUG)
 
 class RedisSession(CallbackDict, SessionMixin):
     def __init__(self, initial=None, sid=None, new=False):
-        super().__init__(initial)
+        def on_update(session_data):
+            session_data.modified = True
+
+        super().__init__(initial, on_update)
         self.modified = False
         self.sid = sid
         self.new = new
 
-    def on_update(self):
-        self.modified = True
-
 class RedisSessionInterface(SessionInterface):
     def __init__(self, host: str, port: int, db: int, expiration_time_sec: int, prefix='session:'):
+        if prefix != Session.SESSION_PREFIX:
+            raise ValueError(
+                'Session body prefix mismatch: '
+                f'Session={Session.SESSION_PREFIX!r}, RedisSessionInterface={prefix!r}'
+            )
         self.prefix = prefix
         self.expiration_time_sec = expiration_time_sec
 
@@ -99,7 +104,7 @@ class RedisSessionInterface(SessionInterface):
         if self.serializer is None:
             logger.warning(f'[WARNING] No serializer found in RedisSessionInterface.')
             return None
-        session_cookie_name = app.config.get('SESSION_COOKIE_NAME')
+        session_cookie_name = self.get_cookie_name(app)
         session_id = request.cookies.get(session_cookie_name)
         if not session_id:
             session_id = self.generate_session_id()
@@ -123,7 +128,12 @@ class RedisSessionInterface(SessionInterface):
         | session:{sid}
         ------------------------------------------------
         """
+        session_cookie_name = self.get_cookie_name(app)
         domain = self.get_cookie_domain(app)
+        path = self.get_cookie_path(app)
+        secure = self.get_cookie_secure(app)
+        samesite = self.get_cookie_samesite(app)
+        httponly = self.get_cookie_httponly(app)
 
         if not session:
             try:
@@ -133,13 +143,18 @@ class RedisSessionInterface(SessionInterface):
                 raise
             if session.modified:
                 logger.debug("Session modified and empty, deleting session cookie.")
-                response.delete_cookie(app.session_cookie_name,
-                                       domain=domain)
+                response.delete_cookie(
+                    session_cookie_name,
+                    domain=domain,
+                    path=path,
+                    secure=secure,
+                    httponly=httponly,
+                    samesite=samesite,
+                )
             return
 
         cookie_exp = self.get_expiration_time(app, session)
         redis_exp = self.get_redis_expiration_time(app, session)
-        session_cookie_name = app.config.get('SESSION_COOKIE_NAME', 'session')
 
         try:
             val = self.serializer.dumps(dict(session), use_bin_type=True)
@@ -151,9 +166,16 @@ class RedisSessionInterface(SessionInterface):
             logger.error(red(f'Failed to save session: {e}'))
             raise
 
-        response.set_cookie(session_cookie_name, session.sid,
-                            expires=cookie_exp, httponly=True,
-                            domain=domain)
+        response.set_cookie(
+            session_cookie_name,
+            session.sid,
+            expires=cookie_exp,
+            httponly=httponly,
+            domain=domain,
+            path=path,
+            secure=secure,
+            samesite=samesite,
+        )
 
 class Session:
     """ログイン済みユーザーのローカルセッション(Redis 実体)。
@@ -161,14 +183,15 @@ class Session:
     ThinkX Auth Protocol §2 手順6 の「ローカルセッションを開始」がこのクラスを指す。
 
     Redis のキー体系(逆引き):
-      - ``session:{sid}``        → セッション本体(RedisSessionInterface が保存)
+      - ``{prefix}{sid}``        → セッション本体(RedisSessionInterface が保存。既定は
+                                    ``session:{sid}``)
       - ``sessions:{user_id}``   → その user_id が持つ sid の集合(**逆引き**。多端末の
                                     同時セッション数カウント = ``count()`` に使う)
       - ``user_id:{sid}``        → sid から user_id への逆引きマップ
     user_id は MongoDB ObjectId の **str**(コーディングガイドが ``str(user.id)`` を指示。F-2)。
     """
 
-    SESSION_PREFIX = 'session:'      # session:{sid} -> セッション本体
+    SESSION_PREFIX = 'session:'      # configure() で Interface と同じ本体 prefix を注入
     SESSIONS_PREFIX = 'sessions:'    # sessions:{user_id} -> sid 集合(逆引き・多端末カウント用)
     SESSION_KEY = 'user_id'
     BROWSER_CONTEXT_KEY = 'browser_context_id'
@@ -179,9 +202,13 @@ class Session:
     _redis = None
 
     @classmethod
-    def configure(cls, host: str, port: int, db: int) -> None:
+    def configure(
+        cls, host: str, port: int, db: int, prefix: str = 'session:'
+    ) -> None:
+        """Configure the Redis store shared with RedisSessionInterface."""
         pool = redis.ConnectionPool(host=host, port=port, db=db)
         cls._redis = StrictRedis(connection_pool=pool)
+        cls.SESSION_PREFIX = prefix
 
     @classmethod
     def _r(cls):
@@ -252,6 +279,7 @@ class Session:
             logger.info(cyan(f"Session started for user {user_id} with session ID {session.sid}."))
         except redis.RedisError as e:
             logger.error(red(f"Error starting session for user {user_id}: {e}"))
+            raise
 
     @classmethod
     def clear_current(cls) -> None:
@@ -269,6 +297,7 @@ class Session:
             logger.info(light_green(f"Current Session cleared for user {user_id}."))
         except redis.RedisError as e:
             logger.error(red(f"Error clearing current Session for user {user_id}: {e}"))
+            raise
 
     @classmethod
     def revoke_all(cls, user_id: str) -> None:
@@ -288,6 +317,7 @@ class Session:
             logger.info(light_green(f"All Sessions revoked for user {user_id}."))
         except redis.RedisError as e:
             logger.error(red(f"Error revoking Sessions for user {user_id}: {e}"))
+            raise
 
     @classmethod
     def clear(cls) -> None:

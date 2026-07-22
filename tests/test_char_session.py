@@ -7,6 +7,7 @@
 # sid は uuid4 で非決定なので、redis キー中の sid は '<SID>' に正規化して凍結する。
 
 import pytest
+import redis
 from flask import session as flask_session
 
 from golden_utils import assert_golden, make_app
@@ -32,9 +33,11 @@ def _scan_keys():
 
 @pytest.fixture(autouse=True)
 def _flush():
+    Session.configure('localhost', 6379, 0)
     _redis().flushall()
     yield
     _redis().flushall()
+    Session.configure('localhost', 6379, 0)
 
 
 def test_session_start_structure():
@@ -109,20 +112,135 @@ def test_negative_session_clear_current_revokes_only_current_browser():
 
 
 def test_negative_session_revoke_all_revokes_every_browser():
-    """05/D-17: revoke_all はユーザーの全端末 Session を失効する。"""
-    session_ids = []
-    for _ in range(2):
-        with app.test_request_context():
-            Session.start(USER_ID)
-            session_ids.append(Session.id())
+    """05/D-17: revoke_all は実 Cookie を持つ全端末 Session を失効する。"""
+    session_prefix = 'auth_session:'
+    Session.configure('localhost', 6379, 0, prefix=session_prefix)
+    a = make_app()
+    a.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax',
+        SESSION_COOKIE_SECURE=True,
+    )
+    a.session_interface = RedisSessionInterface(
+        host='localhost',
+        port=6379,
+        db=0,
+        expiration_time_sec=3600,
+        prefix=session_prefix,
+    )
 
-    with app.test_request_context():
+    @a.post('/signin')
+    def signin():
+        Session.start(USER_ID)
+        return {'session_id': Session.id()}
+
+    @a.get('/current-user')
+    def current_user():
+        return {'user_id': Session.user_id()}
+
+    @a.post('/revoke-all')
+    def revoke_all():
         Session.revoke_all(USER_ID)
+        return '', 204
 
+    first_client = a.test_client()
+    second_client = a.test_client()
+    first_response = first_client.post('/signin', base_url='https://auth.example')
+    second_response = second_client.post('/signin', base_url='https://auth.example')
+    session_ids = {
+        first_response.get_json()['session_id'],
+        second_response.get_json()['session_id'],
+    }
+    set_cookie = first_response.headers['Set-Cookie']
+
+    assert len(session_ids) == 2
+    assert 'Secure' in set_cookie
+    assert 'HttpOnly' in set_cookie
+    assert 'SameSite=Lax' in set_cookie
+    assert 'Domain=' not in set_cookie
+    assert first_client.get(
+        '/current-user', base_url='https://auth.example'
+    ).get_json() == {'user_id': USER_ID}
+    assert second_client.get(
+        '/current-user', base_url='https://auth.example'
+    ).get_json() == {'user_id': USER_ID}
+
+    revoke_response = first_client.post(
+        '/revoke-all', base_url='https://auth.example'
+    )
+    deleted_cookie = revoke_response.headers['Set-Cookie']
+
+    assert revoke_response.status_code == 204
+    assert deleted_cookie.startswith('session=;')
+    assert 'Max-Age=0' in deleted_cookie
+    assert 'Path=/' in deleted_cookie
+    assert 'Secure' in deleted_cookie
+    assert 'HttpOnly' in deleted_cookie
+    assert 'SameSite=Lax' in deleted_cookie
+    assert first_client.get(
+        '/current-user', base_url='https://auth.example'
+    ).get_json() == {'user_id': None}
+    assert second_client.get(
+        '/current-user', base_url='https://auth.example'
+    ).get_json() == {'user_id': None}
     for session_id in session_ids:
-        assert not _redis().exists(f'{Session.SESSION_PREFIX}{session_id}')
+        assert not _redis().exists(f'{session_prefix}{session_id}')
         assert not _redis().exists(f'user_id:{session_id}')
     assert not _redis().exists(f'{Session.SESSIONS_PREFIX}{USER_ID}')
+
+
+class FailingSessionRedis:
+    def smembers(self, _key):
+        raise redis.ConnectionError('session store unavailable')
+
+
+class FailingSessionStartRedis:
+    def sadd(self, _key, _value):
+        raise redis.ConnectionError('session store unavailable')
+
+
+class FailingSessionClearRedis:
+    def srem(self, _key, _value):
+        raise redis.ConnectionError('session store unavailable')
+
+
+def test_session_start_propagates_redis_failure(monkeypatch):
+    monkeypatch.setattr(Session, '_redis', FailingSessionStartRedis())
+
+    with app.test_request_context():
+        with pytest.raises(redis.ConnectionError, match='session store unavailable'):
+            Session.start(USER_ID)
+
+
+def test_session_clear_current_propagates_redis_failure(monkeypatch):
+    monkeypatch.setattr(Session, '_redis', FailingSessionClearRedis())
+
+    with app.test_request_context():
+        flask_session[Session.SESSION_KEY] = USER_ID
+        flask_session.sid = 'current-session-id'
+        with pytest.raises(redis.ConnectionError, match='session store unavailable'):
+            Session.clear_current()
+
+
+def test_session_revoke_all_propagates_redis_failure(monkeypatch):
+    monkeypatch.setattr(Session, '_redis', FailingSessionRedis())
+
+    with app.test_request_context():
+        with pytest.raises(redis.ConnectionError, match='session store unavailable'):
+            Session.revoke_all(USER_ID)
+
+
+def test_session_interface_rejects_mismatched_body_prefix():
+    Session.configure('localhost', 6379, 0, prefix='session:')
+
+    with pytest.raises(ValueError, match='Session body prefix mismatch'):
+        RedisSessionInterface(
+            host='localhost',
+            port=6379,
+            db=0,
+            expiration_time_sec=3600,
+            prefix='auth_session:',
+        )
 
 
 def test_session_get_user_id_from_unknown_sid():
